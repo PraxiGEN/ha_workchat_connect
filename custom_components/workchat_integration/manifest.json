@@ -12,8 +12,8 @@
     "custom_components.workchat_integration"
   ],
   "requirements": [
-    "pycryptodome>=3.21.0",
-    "yarl>=1.18.0"
+    "pycryptodome",
+    "yarl"
   ],
-  "version": "1.0.4"
+  "version": "1.0.5"
 }

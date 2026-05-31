@@ -1,4 +1,4 @@
-"""处理企微回调的 Aiohttp 视图."""
+"""处理企微回调的视图."""
 from __future__ import annotations
 
 import hashlib
@@ -8,143 +8,156 @@ from typing import Any
 
 from aiohttp import web
 from homeassistant.components.http import HomeAssistantView
-from homeassistant.util import dt as dt_util
 
-from .coordinator import WorkChatCoordinator
+from .const import CONF_TOKEN
 
 _LOGGER = logging.getLogger(__name__)
 
 class WorkChatCallbackView(HomeAssistantView):
-    """处理企微回调的视图，包含 Web 状态诊断页."""
+    """处理企微回调的视图，包含 URL 验证、消息接收和状态诊断页."""
     
     url = "/api/workchat_callback/{token}"
     name = "api:workchat_callback"
-    requires_auth = False # 企微服务器访问不需要 HA 登录态
+    requires_auth = False  # 企微服务器访问不需要 HA 登录
 
-    def __init__(self, coordinator: WorkChatCoordinator) -> None:
+    def __init__(self, coordinator) -> None:
         """初始化视图."""
         self.coordinator = coordinator
 
     def _verify_signature(self, sig: str, ts: str, nonce: str, data: str) -> bool:
         """校验企微签名."""
         try:
-            token = self.coordinator.entry.data["token"]
-            tmp = sorted([token, ts, nonce, data])
-            return hashlib.sha1("".join(tmp).encode()).hexdigest() == sig
-        except Exception:
+            # 企微校验逻辑: token(配置), timestamp, nonce, msg_encrypt(或echostr) 字典序排序
+            config_token = self.coordinator.entry.data[CONF_TOKEN]
+            tmp = sorted([config_token, ts, nonce, data])
+            hash_str = hashlib.sha1("".join(tmp).encode()).hexdigest()
+            return hash_str == sig
+        except Exception as e:
+            _LOGGER.error("签名校验算法异常: %s", e)
             return False
 
     async def get(self, request: web.Request, token: str) -> web.Response:
-        """GET 请求：处理企微 URL 验证或显示诊断页."""
-        if token != self.coordinator.entry.data["token"]:
-            return web.Response(status=403, text="Token 不匹配")
+        """处理 GET 请求：企微 URL 验证步或诊断页."""
         
+        # 1. 路径 Token 基础校验 (防止非法访问诊断页)
+        config_token = self.coordinator.entry.data[CONF_TOKEN]
+        if token != config_token:
+            _LOGGER.error("回调 URL Token 不匹配: 收到 %s, 预期 %s", token, config_token)
+            return web.Response(status=403, text="Token Mismatch")
+
         q = request.query
         echostr = q.get("echostr")
 
-        # --- 情况 A: 如果没有 echostr，则显示集成诊断状态页 ---
+        # --- 情况 A: 诊断页展示 (当用户直接访问 URL 时) ---
         if not echostr:
-            # 尝试检查一次 Token 状态以确保诊断页显示最新信息
-            current_token = await self.coordinator.api.get_access_token()
-            
             status_data = {
-                "has_token": current_token is not None,
+                "has_token": await self.coordinator.api.get_access_token() is not None,
                 "agent_id": self.coordinator.api.agent_id,
                 "external_url": self.coordinator.external_url,
-                "last_msg_time": self.coordinator.last_msg_time
+                "last_msg_time": self.coordinator.last_msg_time,
+                "last_event": self.coordinator.last_event
             }
-            return web.Response(
-                text=self._get_status_html(status_data), 
-                content_type="text/html"
-            )
+            return web.Response(text=self._get_status_html(status_data), content_type="text/html")
 
-        # --- 情况 B: 企微后台的 URL 有效性验证逻辑 ---
+        # --- 情况 B: 企微后台 URL 验证逻辑 ---
         sig = q.get("msg_signature")
         ts = q.get("timestamp")
         nonce = q.get("nonce")
-        
+
         if self._verify_signature(sig, ts, nonce, echostr):
             try:
-                # 在线程池中解密 (解密属于 CPU 密集型)
+                # 验证通过，解密 echostr 并返回解密后的原始随机字符串
                 decrypted = await self.coordinator.hass.async_add_executor_job(
                     self.coordinator.encryptor.decrypt, echostr
                 )
+                _LOGGER.info("企微 URL 验证成功: %s", decrypted)
                 return web.Response(text=decrypted)
             except Exception as e:
-                _LOGGER.error("回调 URL 解密验证失败: %s", e)
+                _LOGGER.error("企微解密 echostr 失败 (请检查 EncodingAESKey): %s", e)
+        else:
+            _LOGGER.warning("企微签名验证不通过 (GET)")
         
-        return web.Response(status=400, text="签名验证失败")
+        return web.Response(status=400, text="Verification Failed")
 
     async def post(self, request: web.Request, token: str) -> web.Response:
-        """POST 请求：接收并处理加密的消息推送."""
-        if token != self.coordinator.entry.data["token"]:
+        """处理 POST 请求：接收企微推送的加密消息."""
+        
+        config_token = self.coordinator.entry.data[CONF_TOKEN]
+        if token != config_token:
             return web.Response(status=403)
-            
+
         try:
+            # 1. 提取加密体
             body = await request.text()
             root = ET.fromstring(body)
             encrypt_msg = root.find('Encrypt').text
             
+            # 2. 校验签名
             q = request.query
             if not self._verify_signature(q.get("msg_signature"), q.get("timestamp"), q.get("nonce"), encrypt_msg):
-                _LOGGER.warning("收到未经授权的消息推送")
+                _LOGGER.warning("企微 POST 签名验证不通过")
                 return web.Response(status=401)
 
-            # 解密消息正文
+            # 3. 解密 XML
             decrypted_xml = await self.coordinator.hass.async_add_executor_job(
                 self.coordinator.encryptor.decrypt, encrypt_msg
             )
             
-            # 解析 XML 并分发数据
-            await self._process_xml(decrypted_xml)
+            # 4. 解析 XML 为字典并交给协调器
+            event_data = self._parse_xml(decrypted_xml)
+            self.coordinator.process_callback_data(event_data)
             
-            # 企微要求收到消息后必须回复 success 或空串
             return web.Response(text="success")
             
         except Exception as err:
-            _LOGGER.error("回调 POST 处理失败: %s", err)
+            _LOGGER.error("处理企微推送消息异常: %s", err)
             return web.Response(status=500)
 
-    async def _process_xml(self, xml_str: str):
-        """解析解密后的 XML 数据并交给 Coordinator 处理."""
+    def _parse_xml(self, xml_str: str) -> dict[str, Any]:
+        """将解密后的 XML 解析为字典."""
         root = ET.fromstring(xml_str)
         msg_type = root.find("MsgType").text
         
-        event_data = {
+        data = {
             "user": root.find("FromUserName").text,
             "type": msg_type,
             "agent_id": root.find("AgentID").text if root.find("AgentID") is not None else "",
             "timestamp": root.find("CreateTime").text,
         }
 
-        # 根据消息类型提取特定字段
+        # 详细字段提取逻辑 (100% 复刻原功能)
         if msg_type == "text":
-            event_data["content"] = root.find("Content").text
+            data["content"] = root.find("Content").text
         elif msg_type == "image":
-            event_data["media_id"] = root.find("MediaId").text
-            event_data["pic_url"] = root.find("PicUrl").text
+            data["media_id"] = root.find("MediaId").text
+            data["pic_url"] = root.find("PicUrl").text
         elif msg_type == "location":
-            event_data.update({
+            data.update({
                 "lat": root.find("Location_X").text,
                 "lon": root.find("Location_Y").text,
                 "label": root.find("Label").text if root.find("Label") is not None else ""
             })
         elif msg_type == "event":
             event_name = root.find("Event").text
-            event_data["type"] = "menu_click" if event_name == "click" else "event"
-            event_data["event"] = event_name
+            data["type"] = "menu_click" if event_name == "click" else "event"
+            data["event"] = event_name
             if (ek := root.find("EventKey")) is not None:
-                event_data["event_key"] = ek.text
-
-        # 将解析好的数据交给协调器，它会触发事件并更新传感器
-        self.coordinator.process_callback_data(event_data)
+                data["event_key"] = ek.text
+        
+        return data
 
     def _get_status_html(self, status_data: dict[str, Any]) -> str:
-        """生成诊断状态页的 HTML (完整保留原版样式)."""
+        """生成诊断状态页的 HTML (完整保留并美化原版样式)."""
         has_token = status_data['has_token']
         token_status = "有效 (Ready)" if has_token else "未获取 (Error)"
         token_color = "#27ae60" if has_token else "#e74c3c"
         
+        # 处理最近事件展示
+        last_event = status_data.get("last_event")
+        event_preview = "无"
+        if last_event:
+            event_preview = f"类型: {last_event.get('type')}, 发送者: {last_event.get('user')}"
+
         return f"""
         <!DOCTYPE html>
         <html lang="zh-CN">
@@ -160,10 +173,9 @@ class WorkChatCallbackView(HomeAssistantView):
                 h2 {{ margin: 0; font-size: 1.25rem; }}
                 .status-row {{ display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid #f0f2f5; font-size: 14px; }}
                 .status-label {{ color: #65676b; }}
-                .status-value {{ font-weight: 500; font-family: monospace; }}
-                .badge {{ padding: 2px 8px; border-radius: 4px; color: white; font-size: 12px; }}
+                .status-value {{ font-weight: 500; font-family: monospace; word-break: break-all; }}
                 .footer {{ text-align: center; margin-top: 20px; font-size: 12px; color: #8a8d91; }}
-                .log-box {{ background: #1c1e21; color: #a3e635; padding: 10px; border-radius: 6px; font-size: 12px; margin-top: 15px; overflow-x: auto; }}
+                .log-box {{ background: #1c1e21; color: #a3e635; padding: 12px; border-radius: 6px; font-size: 12px; margin-top: 15px; overflow-x: auto; line-height: 1.5; }}
             </style>
         </head>
         <body>
@@ -181,16 +193,22 @@ class WorkChatCallbackView(HomeAssistantView):
                     <span class="status-value">{status_data['agent_id']}</span>
                 </div>
                 <div class="status-row">
-                    <span class="status-label">Webhook 校验</span>
+                    <span class="status-label">URL 验证状态</span>
                     <span class="status-value" style="color: #27ae60">配置正常 ✓</span>
                 </div>
                 <div class="status-row">
                     <span class="status-label">最近消息时间</span>
                     <span class="status-value">{status_data['last_msg_time'] or '等待首条消息...'}</span>
                 </div>
+                <div class="status-row">
+                    <span class="status-label">最近消息预览</span>
+                    <span class="status-value" style="font-size: 12px;">{event_preview}</span>
+                </div>
                 <div class="log-box">
-                    System: Service is running on Coordinator Architecture.<br>
-                    External URL: {self.coordinator.callback_url}
+                    <strong>诊断信息:</strong><br>
+                    Mode: Coordinator Architecture (2026)<br>
+                    Callback URL: {self.coordinator.callback_url}<br>
+                    External URL: {status_data['external_url']}
                 </div>
             </div>
             <div class="footer">WorkChat Integration for Home Assistant</div>

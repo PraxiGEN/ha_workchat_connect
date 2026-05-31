@@ -150,9 +150,9 @@ class WorkChatMessageSensor(WorkChatBaseEntity):
     def native_value(self) -> str | None:
         if not self._msg_data: return None
         key = self.entity_description.key
-        if key == "image": return "图片消息"
+        if key == "image": return "Image message"
         if key == "text": return self._msg_data.get("content")
-        if key == "menu_click": return self._msg_data.get("event_key")
+        if key == "menu_click": return "Menu Message"
         if key == "location": return self._msg_data.get("label") or self._msg_data.get("lat")
         val = self._msg_data.get("media_id")
         if val and len(val) > 16: return f"{val[:6]}...{val[-6:]}"
@@ -227,7 +227,7 @@ class WorkChatMediaUploadSensor(WorkChatBaseEntity):
 
     @property
     def native_value(self) -> str | None:
-        return "已就绪" if self._upload_data.get("media_id") else "等待上传"
+        return "Ready" if self._upload_data.get("media_id") else "Waiting to upload"
 
     @property
     def extra_state_attributes(self) -> dict[str, Any]:

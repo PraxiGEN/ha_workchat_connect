@@ -71,29 +71,32 @@ class WorkChatApi:
                 _LOGGER.error("获取企微 Token 网络异常: %s (代理: %s)", err, self.proxy)
             return None
 
-    async def post_api(self, path: str, json_data: dict | None = None, data: Any = None, retry: int = 1) -> dict:
-        """通用的 POST 请求方法，支持自动 Token 刷新."""
-        token = await self.get_access_token()
-        if not token:
-            return {"errcode": -1, "errmsg": "no_token"}
+    async def post_api(self, path: str, json_data: dict | None = None, params: dict | None = None, data: Any = None, retry: int = 1) -> dict:
+            """通用的 POST 请求方法，支持自动 Token 刷新及 URL 参数."""
+            token = await self.get_access_token()
+            if not token:
+                return {"errcode": -1, "errmsg": "no_token"}
 
-        url = (self.base_url / path).with_query(access_token=token)
-        
-        try:
-            async with self.session.post(url, json=json_data, data=data, proxy=self.proxy, timeout=30) as resp:
-                res = await resp.json()
-                
-                # 处理 Token 失效 (40014: 不合法/过期, 42001: 已过期)
-                if res.get("errcode") in [40014, 42001] and retry > 0:
-                    _LOGGER.info("企微 Token 失效，尝试刷新重试...")
-                    await self.get_access_token(force_refresh=True)
-                    return await self.post_api(path, json_data, data, retry=retry-1)
-                
-                return res
-        except Exception as err:
-            _LOGGER.error("企微 API 请求异常 [%s]: %s", path, err)
-            return {"errcode": -1, "errmsg": str(err)}
-
+            url = (self.base_url / path).with_query(access_token=token)
+            
+            if params:
+                url = url.update_query(params)
+            
+            try:
+                async with self.session.post(url, json=json_data, data=data, proxy=self.proxy, timeout=30) as resp:
+                    res = await resp.json()
+                    
+                    # 处理 Token 失效
+                    if res.get("errcode") in [40014, 42001] and retry > 0:
+                        _LOGGER.info("企微 Token 失效，尝试刷新重试...")
+                        await self.get_access_token(force_refresh=True)
+                        return await self.post_api(path, json_data, params, data, retry=retry-1)
+                    
+                    return res
+            except Exception as err:
+                _LOGGER.error("企微 API 请求异常 [%s]: %s", path, err)
+                return {"errcode": -1, "errmsg": str(err)}
+            
     def build_message_payload(self, **kwargs: Any) -> dict:
         """构建消息 Payload (使用常量替换魔法字符串)."""
         msg_type = kwargs.get("msg_type", MSG_TYPE_TEXT)

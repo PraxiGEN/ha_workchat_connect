@@ -4,6 +4,8 @@ from __future__ import annotations
 import hashlib
 import logging
 import time
+import os
+from aiohttp import FormData
 from datetime import timedelta
 from typing import Any
 
@@ -109,8 +111,6 @@ class WorkChatCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         self, media_type: str, file_path: str, file_name: str | None = None
     ) -> str | None:
         """上传媒体文件并更新状态."""
-        import os
-        from aiohttp import FormData
 
         # 在线程池中读取文件
         def _get_file():

@@ -40,12 +40,79 @@
   },
   "entity": {
     "sensor": {
-      "text_message": { "name": "文本消息" },
-      "image_message": { "name": "图片消息" },
-      "location_message": { "name": "位置消息" },
-      "menu_click": { "name": "菜单交互" },
-      "callback_info": { "name": "回调状态" },
-      "media_upload": { "name": "媒体上传" }
+      "text_message": { 
+        "name": "文本消息",
+        "state_attributes": {
+          "from_user": { "name": "用户" },
+          "receive_time": { "name": "接收时间" },
+          "agent_id": { "name": "应用 ID" },
+          "raw_info": { "name": "原始信息" }
+        }
+      },
+      "image_message": { 
+        "name": "图片消息",
+        "state":{
+          "Image message": "图片消息"
+        },
+        "state_attributes": {
+          "from_user": { "name": "用户" },
+          "receive_time": { "name": "接收时间" },
+          "agent_id": { "name": "应用 ID" },
+          "media_id": { "name": "图片 ID" },
+          "pic_url": { "name": "图片网址" },
+          "raw_info": { "name": "原始信息" }
+        }
+      },
+      "location_message": { 
+        "name": "位置消息",
+        "state_attributes": {
+          "from_user": { "name": "用户" },
+          "receive_time": { "name": "接收时间" },
+          "latitude": { "name": "纬度" },
+          "longitude": { "name": "经度" },
+          "address": { "name": "地理位置" },
+          "raw_info": { "name": "原始信息" }
+        }
+      },
+      "menu_click": { 
+        "name": "菜单交互",
+        "state":{
+          "Menu Message": "菜单消息"
+        },
+        "state_attributes": {
+          "from_user": { "name": "用户" },
+          "receive_time": { "name": "接收时间" },
+          "agent_id": { "name": "应用 ID" },
+          "raw_info": { "name": "原始信息" }
+        }
+      },
+      "callback_info": { 
+        "name": "回调状态",
+        "state": {
+          "Connected": "已连接",
+          "Disconnected": "断开连接" 
+        },
+        "state_attributes": {
+          "webhook_url": { "name": "回调地址" },
+          "corpid": { "name": "企业 ID" },
+          "last_msg_received": { "name": "最后收到信息时间" },
+          "agent_id": { "name": "应用 ID" },
+          "token_expires_at": { "name": "令牌过期时间" },          
+          "token_expires_at_raw": { "name": "原始令牌过期时间" }
+        }
+      },
+      "media_upload": { 
+        "name": "媒体上传",
+        "state":{
+          "Ready": "已就绪",
+          "Waiting to upload": "等待上传"
+        },
+        "state_attributes": {
+          "media_id": { "name": "媒体 ID" },
+          "file_path": { "name": "文件路径" },
+          "upload_time": { "name": "上传时间" }
+        }
+      }
     },
     "notify": {
       "workchat_notifier": { "name": "通知助手" }
