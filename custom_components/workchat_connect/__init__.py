@@ -22,6 +22,7 @@ from .const import (
     CONF_SECRET,
     CONF_AES_KEY,
     DOMAIN,
+    LOGGER,
     PLATFORMS,
 )
 from .coordinator import WorkChatCoordinator
@@ -88,8 +89,18 @@ async def async_setup_entry(hass: HomeAssistant, entry: WorkChatConfigEntry) -> 
 
 async def async_unload_entry(hass: HomeAssistant, entry: WorkChatConfigEntry) -> bool:
     """卸载集成."""
+
+    coordinator = entry.runtime_data
     unload_ok = await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
+
     if unload_ok:
-        hass.services.async_remove(DOMAIN, "notify")
-        hass.services.async_remove(DOMAIN, "upload_media")
+        # ---触发语音文件物理清理 ---
+        await coordinator.async_remove_media_data()
+        # 清理已注册的服务
+        if hass.services.has_service(DOMAIN, "notify"):
+            hass.services.async_remove(DOMAIN, "notify")
+        if hass.services.has_service(DOMAIN, "upload_media"):
+            hass.services.async_remove(DOMAIN, "upload_media")
+        
+        LOGGER.info("企微通集成 %s 已卸载完成", entry.title)
     return unload_ok

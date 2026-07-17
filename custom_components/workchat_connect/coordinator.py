@@ -316,6 +316,23 @@ class WorkChatCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         except Exception as err:
             LOGGER.error("执行自动清理任务时出错: %s", err)
 
+    async def async_remove_media_data(self):
+        """卸载集成时，清理所有的语音文件及目录."""
+        
+        # 获取物理路径: /config/media/workchat
+        target_dir = self.hass.config.path("media", "workchat")
+
+        def _delete_dir():
+            try:
+                if os.path.exists(target_dir):
+                    shutil.rmtree(target_dir)
+                    LOGGER.info("企微集成已卸载：已成功删除语音存储目录 %s", target_dir)
+            except Exception as err:
+                LOGGER.error("删除语音目录时出错: %s", err)
+
+        # 在线程池中执行 IO 删除操作
+        await self.hass.async_add_executor_job(_delete_dir)
+
     @property
     def device_info(self) -> DeviceInfo:
         """定义设备信息属性，供所有实体引用."""
