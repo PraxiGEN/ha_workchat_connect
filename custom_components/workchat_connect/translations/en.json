@@ -15,8 +15,21 @@
           "external_url": "Webhook URL",
           "proxy": "Proxy URL (Optional)"
         }
+      },
+      "reconfigure": {
+        "title": "Reconfigure WorkChat",
+        "description": "Update your credentials for the WorkChat application.",
+        "data": {
+          "corp_id": "Corp ID",
+          "secret": "Secret",
+          "agent_id": "Agent ID",
+          "token": "Token",
+          "aes_key": "EncodingAESKey",
+          "external_url": "Webhook URL",
+          "proxy": "Proxy URL (Optional)"
+        }
       }
-    },
+    },   
     "error": {
       "cannot_connect": "Failed to connect to WorkChat server",
       "invalid_auth": "Authentication failed, please check Corp ID and Secret",

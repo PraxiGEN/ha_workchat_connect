@@ -15,6 +15,19 @@
           "external_url": "公网回调 URL",
           "proxy": "代理地址 (可选)"
         }
+      },
+      "reconfigure": {
+        "title": "重新配置企微应用",
+        "description": "请更新您的企业微信应用凭据。若修改了 Token，请记得同步更新企微后台的 URL。",
+        "data": {
+          "corp_id": "企业 ID (CorpID)",
+          "secret": "应用密钥 (Secret)",
+          "agent_id": "应用 ID (AgentID)",
+          "token": "回调 Token",
+          "aes_key": "EncodingAESKey",
+          "external_url": "公网回调 URL",
+          "proxy": "代理地址 (可选)"
+        }
       }
     },
     "error": {
