@@ -53,7 +53,7 @@
       "voice_message": {
         "name": "Voice Message",
         "state": {
-          "Voice message": "Voice Message"
+          "voice_message": "Voice Message"
         },
         "state_attributes": {
           "from_user": { "name": "User" },
@@ -70,7 +70,7 @@
       "image_message": {
         "name": "Image Message",
         "state": {
-          "Image message": "Image Message"
+          "image_message": "Image Message"
         },
         "state_attributes": {
           "from_user": { "name": "User" },
@@ -95,7 +95,7 @@
       "menu_click": {
         "name": "Menu Interaction",
         "state": {
-          "Menu Message": "Menu Message"
+          "menu_message": "Menu Message"
         },
         "state_attributes": {
           "from_user": { "name": "User" },
@@ -107,8 +107,8 @@
       "callback_info": {
         "name": "Callback Status",
         "state": {
-          "Connected": "Connected",
-          "Disconnected": "Disconnected"
+          "connected": "Connected",
+          "disconnected": "Disconnected"
         },
         "state_attributes": {
           "webhook_url": { "name": "Callback URL" },
@@ -122,8 +122,8 @@
       "media_upload": {
         "name": "Media Upload",
         "state": {
-          "Ready": "Ready",
-          "Waiting to upload": "Waiting to Upload"
+          "ready": "Ready",
+          "waiting_to_upload": "Waiting to Upload"
         },
         "state_attributes": {
           "media_id": { "name": "Media ID" },

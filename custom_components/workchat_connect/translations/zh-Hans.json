@@ -53,7 +53,7 @@
       "voice_message": { 
         "name": "语音消息",
         "state":{
-          "Voice message": "语音消息"
+          "voice_message": "语音消息"
         },
         "state_attributes": {
           "from_user": { "name": "用户" },
@@ -70,7 +70,7 @@
       "image_message": { 
         "name": "图片消息",
         "state":{
-          "Image message": "图片消息"
+          "image_message": "图片消息"
         },
         "state_attributes": {
           "from_user": { "name": "用户" },
@@ -95,7 +95,7 @@
       "menu_click": { 
         "name": "菜单交互",
         "state":{
-          "Menu Message": "菜单消息"
+          "menu_message": "菜单消息"
         },
         "state_attributes": {
           "from_user": { "name": "用户" },
@@ -107,8 +107,8 @@
       "callback_info": { 
         "name": "回调状态",
         "state": {
-          "Connected": "已连接",
-          "Disconnected": "断开连接" 
+          "connected": "已连接",
+          "disconnected": "断开连接" 
         },
         "state_attributes": {
           "webhook_url": { "name": "回调地址" },
@@ -122,8 +122,8 @@
       "media_upload": { 
         "name": "媒体上传",
         "state":{
-          "Ready": "已就绪",
-          "Waiting to upload": "等待上传"
+          "ready": "已就绪",
+          "waiting_to_upload": "等待上传"
         },
         "state_attributes": {
           "media_id": { "name": "媒体 ID" },
