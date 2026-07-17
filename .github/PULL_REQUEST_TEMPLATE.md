@@ -1,6 +1,9 @@
 ## Description / 变更描述
 
-<!-- What changed? / 描述本次修改内容 -->
+<!--
+Describe what changed and why. / 描述本次修改内容以及原因。
+Related Issue / 关联 Issue: #123
+-->
 
 
 ## Type of change / 变更类型
@@ -16,9 +19,9 @@
 <!-- Please provide test environment. / 请填写测试环境。
  -->
 
-- HA Version / HA版本:
-- Integration Version / 集成版本:
-- Test Result / 测试结果:
+- HA Version / HA版本: 
+- Integration Version / 集成版本: 
+- Test Result / 测试结果: 
 
 ## Checklist / 自检清单
 
