@@ -156,9 +156,9 @@ class WorkChatMessageSensor(WorkChatBaseEntity):
         if not self._msg_data: return None
         key = self.entity_description.key
         if key == MSG_TYPE_TEXT: return self._msg_data.get("content")
-        if key == MSG_TYPE_VOICE: return "Voice message"
-        if key == MSG_TYPE_IMAGE: return "Image message"
-        if key == "menu_click": return "Menu Message"
+        if key == MSG_TYPE_VOICE: return "voice_message"
+        if key == MSG_TYPE_IMAGE: return "image_message"
+        if key == "menu_click": return "menu_message"
         if key == "location": return self._msg_data.get("label") or self._msg_data.get("lat")
         val = self._msg_data.get("media_id")
         if val and len(val) > 16: return f"{val[:6]}...{val[-6:]}"

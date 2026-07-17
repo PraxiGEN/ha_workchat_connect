@@ -53,7 +53,7 @@
       "voice_message": { 
         "name": "语音消息",
         "state":{
-          "Voice message": "语音消息"
+          "voice_message": "语音消息"
         },
         "state_attributes": {
           "from_user": { "name": "用户" },
@@ -70,7 +70,7 @@
       "image_message": { 
         "name": "图片消息",
         "state":{
-          "Image message": "图片消息"
+          "image_message": "图片消息"
         },
         "state_attributes": {
           "from_user": { "name": "用户" },
@@ -95,7 +95,7 @@
       "menu_click": { 
         "name": "菜单交互",
         "state":{
-          "Menu Message": "菜单消息"
+          "menu_message": "菜单消息"
         },
         "state_attributes": {
           "from_user": { "name": "用户" },
