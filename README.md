@@ -1,4 +1,4 @@
-# <img src="custom_components/ha_workchat_connect/brand/icon.png" width="64"> 企微通 (WorkChat Connect)
+# <img src="custom_components/workchat_connect/brand/icon.png" width="64"> 企微通 (WorkChat Connect)
 
 [![Release](https://img.shields.io/github/v/release/hzonz/ha_workchat_connect)](https://github.com/hzonz/ha_workchat_connect/releases)
 [![License](https://img.shields.io/badge/License-MIT-yellow.svg)](https://github.com/hzonz/ha_workchat_connect/blob/main/LICENSE)
