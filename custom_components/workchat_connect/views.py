@@ -2,16 +2,13 @@
 from __future__ import annotations
 
 import hashlib
-import logging
 import xml.etree.ElementTree as ET
 from typing import Any
 
 from aiohttp import web
 from homeassistant.components.http import HomeAssistantView
 
-from .const import CONF_TOKEN
-
-_LOGGER = logging.getLogger(__name__)
+from .const import CONF_TOKEN, LOGGER
 
 class WorkChatCallbackView(HomeAssistantView):
     """处理企微回调的视图，包含 URL 验证、消息接收和状态诊断页."""
@@ -33,16 +30,16 @@ class WorkChatCallbackView(HomeAssistantView):
             hash_str = hashlib.sha1("".join(tmp).encode()).hexdigest()
             return hash_str == sig
         except Exception as e:
-            _LOGGER.error("签名校验算法异常: %s", e)
+            LOGGER.error("签名校验算法异常: %s", e)
             return False
 
     async def get(self, request: web.Request, token: str) -> web.Response:
         """处理 GET 请求：企微 URL 验证步或诊断页."""
         
-        # 1. 路径 Token 基础校验 (防止非法访问诊断页)
+        # 路径 Token 基础校验 (防止非法访问诊断页)
         config_token = self.coordinator.entry.data[CONF_TOKEN]
         if token != config_token:
-            _LOGGER.error("回调 URL Token 不匹配: 收到 %s, 预期 %s", token, config_token)
+            LOGGER.error("回调 URL Token 不匹配: 收到 %s, 预期 %s", token, config_token)
             return web.Response(status=403, text="Token Mismatch")
 
         q = request.query
@@ -70,12 +67,12 @@ class WorkChatCallbackView(HomeAssistantView):
                 decrypted = await self.coordinator.hass.async_add_executor_job(
                     self.coordinator.encryptor.decrypt, echostr
                 )
-                _LOGGER.info("企微 URL 验证成功: %s", decrypted)
+                LOGGER.info("企微 URL 验证成功: %s", decrypted)
                 return web.Response(text=decrypted)
             except Exception as e:
-                _LOGGER.error("企微解密 echostr 失败 (请检查 EncodingAESKey): %s", e)
+                LOGGER.error("企微解密 echostr 失败 (请检查 EncodingAESKey): %s", e)
         else:
-            _LOGGER.warning("企微签名验证不通过 (GET)")
+            LOGGER.warning("企微签名验证不通过 (GET)")
         
         return web.Response(status=400, text="Verification Failed")
 
@@ -95,7 +92,7 @@ class WorkChatCallbackView(HomeAssistantView):
             # 2. 校验签名
             q = request.query
             if not self._verify_signature(q.get("msg_signature"), q.get("timestamp"), q.get("nonce"), encrypt_msg):
-                _LOGGER.warning("企微 POST 签名验证不通过")
+                LOGGER.warning("企微 POST 签名验证不通过")
                 return web.Response(status=401)
 
             # 3. 解密 XML
@@ -110,7 +107,7 @@ class WorkChatCallbackView(HomeAssistantView):
             return web.Response(text="success")
             
         except Exception as err:
-            _LOGGER.error("处理企微推送消息异常: %s", err)
+            LOGGER.error("处理企微推送消息异常: %s", err)
             return web.Response(status=500)
 
     def _parse_xml(self, xml_str: str) -> dict[str, Any]:
@@ -128,6 +125,10 @@ class WorkChatCallbackView(HomeAssistantView):
         # 详细字段提取逻辑 (100% 复刻原功能)
         if msg_type == "text":
             data["content"] = root.find("Content").text
+        elif msg_type == "voice":
+            data["media_id"] = root.find("MediaId").text
+            data["format"] = root.find("Format").text if root.find("Format") is not None else "amr"
+            data["msg_id"] = root.find("MsgId").text if root.find("MsgId") is not None else ""
         elif msg_type == "image":
             data["media_id"] = root.find("MediaId").text
             data["pic_url"] = root.find("PicUrl").text

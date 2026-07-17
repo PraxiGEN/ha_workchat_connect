@@ -1,0 +1,90 @@
+upload_media:
+  fields:
+    type:
+      required: true
+      default: file
+      selector:
+        select:
+          options:
+            - label: "image"
+              value: "image"
+            - label: "voice"
+              value: "voice"
+            - label: "video"
+              value: "video"
+            - label: "file"
+              value: "file"
+    file_path:
+      required: true
+      example: "/config/www/cam_snapshot.jpg"
+      selector:
+        text:
+    file_name:
+      required: false
+      selector:
+        text:
+
+notify:
+  fields:
+    msg_type:
+      required: true
+      default: text
+      selector:
+        select:
+          options:
+            - label: "text"
+              value: "text"
+            - label: "markdown"
+              value: "markdown"
+            - label: "textcard"
+              value: "textcard"
+            - label: "template_card"
+              value: "template_card"
+            - label: "news"
+              value: "news"
+            - label: "image"
+              value: "image"
+            - label: "file"
+              value: "file"
+            - label: "voice"
+              value: "voice"
+            - label: "video"
+              value: "video"
+    message:
+      selector:
+        text:
+          multiline: true
+    title:
+      selector:
+        text:
+    touser:
+      selector:
+        text:
+    media_id:
+      selector:
+        text:
+    url:
+      selector:
+        text:
+          type: url
+    btntxt:
+      default: 详情
+      selector:
+        text:
+    picurl:
+      selector:
+        text:
+          type: url
+    safe:
+      default: 0
+      selector:
+        number:
+          min: 0
+          max: 1
+          mode: box
+    articles:
+      selector:
+        object:
+    template_card_data:
+      selector:
+        object:

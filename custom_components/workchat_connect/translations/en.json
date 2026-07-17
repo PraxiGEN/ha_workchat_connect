@@ -1,0 +1,209 @@
+{
+  "title": "WorkChat Connect",
+  "config": {
+    "step": {
+      "user": {
+        "title": "WorkChat Config",
+        "description": "Enter your Enterprise WeChat (WorkChat) application details.",
+        "data": {
+          "corp_id": "Corp ID",
+          "secret": "Secret",
+          "agent_id": "Agent ID",
+          "token": "Token",
+          "aes_key": "EncodingAESKey",
+          "receive_user": "Default Receiver",
+          "external_url": "Webhook URL",
+          "proxy": "Proxy URL (Optional)"
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "Failed to connect to WorkChat server",
+      "invalid_auth": "Authentication failed, please check Corp ID and Secret",
+      "invalid_proxy_format": "Proxy format invalid, must start with http:// or https://",
+      "unknown": "Unexpected error occurred"
+    },
+    "abort": {
+      "already_configured": "This application (Agent ID) is already configured.",
+      "reconfigure_successful": "Reconfiguration successful"
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Configure WorkChat Options",
+        "data": {
+          "receive_user": "Default Receiver",
+          "proxy": "Proxy URL"
+        }
+      }
+    }
+  },
+  "entity": {
+    "sensor": {
+      "text_message": {
+        "name": "Text Message",
+        "state_attributes": {
+          "from_user": { "name": "User" },
+          "receive_time": { "name": "Receive Time" },
+          "agent_id": { "name": "Agent ID" },
+          "raw_info": { "name": "Raw Information" }
+        }
+      },
+      "voice_message": {
+        "name": "Voice Message",
+        "state": {
+          "Voice message": "Voice Message"
+        },
+        "state_attributes": {
+          "from_user": { "name": "User" },
+          "receive_time": { "name": "Receive Time" },
+          "agent_id": { "name": "Agent ID" },
+          "media_id": { "name": "Voice ID" },
+          "msg_id": { "name": "Message ID" },
+          "original_format": { "name": "Original Voice Format" },
+          "format": { "name": "Voice Format" },
+          "local_path": { "name": "Local Path" },
+          "raw_info": { "name": "Raw Information" }
+        }
+      },
+      "image_message": {
+        "name": "Image Message",
+        "state": {
+          "Image message": "Image Message"
+        },
+        "state_attributes": {
+          "from_user": { "name": "User" },
+          "receive_time": { "name": "Receive Time" },
+          "agent_id": { "name": "Agent ID" },
+          "media_id": { "name": "Image ID" },
+          "pic_url": { "name": "Image URL" },
+          "raw_info": { "name": "Raw Information" }
+        }
+      },
+      "location_message": {
+        "name": "Location Message",
+        "state_attributes": {
+          "from_user": { "name": "User" },
+          "receive_time": { "name": "Receive Time" },
+          "latitude": { "name": "Latitude" },
+          "longitude": { "name": "Longitude" },
+          "address": { "name": "Location Address" },
+          "raw_info": { "name": "Raw Information" }
+        }
+      },
+      "menu_click": {
+        "name": "Menu Interaction",
+        "state": {
+          "Menu Message": "Menu Message"
+        },
+        "state_attributes": {
+          "from_user": { "name": "User" },
+          "receive_time": { "name": "Receive Time" },
+          "agent_id": { "name": "Agent ID" },
+          "raw_info": { "name": "Raw Information" }
+        }
+      },
+      "callback_info": {
+        "name": "Callback Status",
+        "state": {
+          "Connected": "Connected",
+          "Disconnected": "Disconnected"
+        },
+        "state_attributes": {
+          "webhook_url": { "name": "Callback URL" },
+          "corpid": { "name": "Corp ID" },
+          "last_msg_received": { "name": "Last Message Received Time" },
+          "agent_id": { "name": "Agent ID" },
+          "token_expires_at": { "name": "Token Expiration Time" },
+          "token_expires_at_raw": { "name": "Raw Token Expiration Time" }
+        }
+      },
+      "media_upload": {
+        "name": "Media Upload",
+        "state": {
+          "Ready": "Ready",
+          "Waiting to upload": "Waiting to Upload"
+        },
+        "state_attributes": {
+          "media_id": { "name": "Media ID" },
+          "file_path": { "name": "File Path" },
+          "upload_time": { "name": "Upload Time" }
+        }
+      }
+    },
+    "notify": {
+      "workchat_notifier": { "name": "Notification Assistant" }
+    }
+  },
+  "services": {
+    "upload_media": {
+      "name": "Upload Media",
+      "description": "Upload local files to WeCom server (valid for 3 days). The returned media_id can be used for subsequent messages.",
+      "fields": {
+        "type": {
+          "name": "Media Type",
+          "description": "Resource classification. Image/Voice/Video have format limits; 'file' is universal."
+        },
+        "file_path": {
+          "name": "File Path",
+          "description": "Absolute path of the local file."
+        },
+        "file_name": {
+          "name": "Custom Filename",
+          "description": "Filename displayed to the recipient."
+        }
+      }
+    },
+    "notify": {
+      "name": "Send WorkChat Message",
+      "description": "Push rich media messages via self-built app. Supports specific users or @all.",
+      "fields": {
+        "msg_type": {
+          "name": "Message Type",
+          "description": "Determines how the message is presented."
+        },
+        "message": {
+          "name": "Message Content",
+          "description": "Main text content of the message."
+        },
+        "title": {
+          "name": "Title",
+          "description": "Title of the message."
+        },
+        "touser": {
+          "name": "Target Users",
+          "description": "Member IDs separated by '|'. Use '@all' for everyone."
+        },
+        "media_id": {
+          "name": "Media ID",
+          "description": "Required for image, file, voice, or video messages."
+        },
+        "url": {
+          "name": "Redirect URL",
+          "description": "URL to open when the card is clicked."
+        },
+        "btntxt": {
+          "name": "Button Text",
+          "description": "The text for the details button at the bottom of text cards."
+        },
+        "picurl": {
+          "name": "Cover Image URL",
+          "description": "URL for the cover image used in 'news' messages."
+        },
+        "safe": {
+          "name": "Safe Mode",
+          "description": "Set to 1 to hide message content in notification bar."
+        },
+        "articles": {
+          "name": "Article List",
+          "description": "Used only for 'news' type (Advanced object format)."
+        },
+        "template_card_data": {
+          "name": "Template Card Data",
+          "description": "Used only for 'template_card' type (JSON object)."
+        }
+      }
+    }
+  }
+}

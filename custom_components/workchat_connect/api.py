@@ -2,15 +2,16 @@
 from __future__ import annotations
 
 import asyncio
-import logging
 import time
 from typing import Any
 from yarl import URL
 from aiohttp import ClientSession
 
 from .const import (
+    LOGGER,
     API_BASE, 
     API_GET_TOKEN, 
+    API_GET_MEDIA,
     MSG_TYPE_TEXT,
     MSG_TYPE_MARKDOWN,
     MSG_TYPE_TEXTCARD,
@@ -21,8 +22,6 @@ from .const import (
     MSG_TYPE_VOICE,
     MSG_TYPE_VIDEO
 )
-
-_LOGGER = logging.getLogger(__name__)
 
 class WorkChatApi:
     """封装企业微信所有 API 请求."""
@@ -63,12 +62,12 @@ class WorkChatApi:
                         self._access_token = data["access_token"]
                         # 企微通常返回 7200 秒有效期
                         self._token_expire = time.time() + data["expires_in"]
-                        _LOGGER.debug("企微 Token 刷新成功，有效期至: %s", 
+                        LOGGER.debug("企微 Token 刷新成功，有效期至: %s", 
                                      time.strftime('%H:%M:%S', time.localtime(self._token_expire)))
                         return self._access_token
-                    _LOGGER.error("获取企微 Token 失败: %s", data.get("errmsg"))
+                    LOGGER.error("获取企微 Token 失败: %s", data.get("errmsg"))
             except Exception as err:
-                _LOGGER.error("获取企微 Token 网络异常: %s (代理: %s)", err, self.proxy)
+                LOGGER.error("获取企微 Token 网络异常: %s (代理: %s)", err, self.proxy)
             return None
 
     async def post_api(self, path: str, json_data: dict | None = None, params: dict | None = None, data: Any = None, retry: int = 1) -> dict:
@@ -88,13 +87,13 @@ class WorkChatApi:
                     
                     # 处理 Token 失效
                     if res.get("errcode") in [40014, 42001] and retry > 0:
-                        _LOGGER.info("企微 Token 失效，尝试刷新重试...")
+                        LOGGER.info("企微 Token 失效，尝试刷新重试...")
                         await self.get_access_token(force_refresh=True)
                         return await self.post_api(path, json_data, params, data, retry=retry-1)
                     
                     return res
             except Exception as err:
-                _LOGGER.error("企微 API 请求异常 [%s]: %s", path, err)
+                LOGGER.error("企微 API 请求异常 [%s]: %s", path, err)
                 return {"errcode": -1, "errmsg": str(err)}
             
     def build_message_payload(self, **kwargs: Any) -> dict:
@@ -146,3 +145,36 @@ class WorkChatApi:
             }
             
         return payload
+
+    async def download_media(self, media_id: str) -> bytes | None:
+        """从企微服务器拉取媒体文件二进制数据."""
+        LOGGER.debug("开始请求企微媒体下载 API, MediaID: %s", media_id)
+        token = await self.get_access_token()
+        if not token:
+            LOGGER.error("下载失败：无法获取 Access Token")
+            return None
+
+        # 构造下载链接
+        url = (self.base_url / API_GET_MEDIA).with_query(
+            access_token=token,
+            media_id=media_id
+        )
+
+        try:
+            async with self.session.get(url, proxy=self.proxy, timeout=30) as resp:
+                if resp.status == 200:
+                    content_type = resp.headers.get("Content-Type", "")
+                    # 如果返回的是 JSON，说明是错误信息
+                    if "application/json" in content_type:
+                        err_data = await resp.json()
+                        LOGGER.error("企微返回下载错误: %s", err_data)
+                        return None
+                    
+                    data = await resp.read()
+                    LOGGER.debug("从企微下载二进制数据成功: %d bytes", len(data))
+                    return data
+                
+                LOGGER.error("企微下载请求失败，HTTP 状态码: %s", resp.status)
+        except Exception as err:
+            LOGGER.error("企微下载过程发生异常: %s", err)
+        return None

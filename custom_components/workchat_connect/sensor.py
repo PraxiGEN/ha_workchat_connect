@@ -1,7 +1,6 @@
 """企微通传感器平台实现 - 全描述符驱动优化版."""
 from __future__ import annotations
 
-import logging
 from dataclasses import dataclass
 from typing import Any, Final
 
@@ -16,15 +15,13 @@ from homeassistant.helpers.update_coordinator import CoordinatorEntity
 from homeassistant.util import dt as dt_util
 
 from .__init__ import WorkChatConfigEntry
-from .const import DOMAIN, EVENT_MESSAGE_RECEIVED, EVENT_MEDIA_UPLOADED
+from .const import ( 
+    DOMAIN, LOGGER,
+    EVENT_MESSAGE_RECEIVED, EVENT_MEDIA_UPLOADED, 
+    TYPE_INFO, TYPE_MSG, TYPE_UPLOAD, 
+    MSG_TYPE_IMAGE, MSG_TYPE_TEXT, MSG_TYPE_VOICE
+)
 from .coordinator import WorkChatCoordinator
-
-_LOGGER = logging.getLogger(__name__)
-
-# 定义传感器类型枚举（内部使用）
-TYPE_MSG: Final = "message"
-TYPE_INFO: Final = "info"
-TYPE_UPLOAD: Final = "upload"
 
 @dataclass(frozen=True, kw_only=True)
 class WorkChatSensorEntityDescription(SensorEntityDescription):
@@ -34,20 +31,28 @@ class WorkChatSensorEntityDescription(SensorEntityDescription):
 
 # --- 所有实体的统一描述符定义 ---
 SENSOR_DESCRIPTIONS: tuple[WorkChatSensorEntityDescription, ...] = (
-    # 1. 消息类传感器
+    # 消息类传感器
     WorkChatSensorEntityDescription(
-        key="text",
+        key=MSG_TYPE_TEXT,
         name="Text Message",
         translation_key="text_message",
-        event_type="text",
+        event_type=MSG_TYPE_TEXT,
         sensor_type=TYPE_MSG,
         icon="mdi:chat-processing-outline",
     ),
     WorkChatSensorEntityDescription(
-        key="image",
+        key=MSG_TYPE_VOICE,
+        name="Voice Message",
+        translation_key="voice_message",
+        event_type=MSG_TYPE_VOICE,
+        sensor_type=TYPE_MSG,
+        icon="mdi:microphone",
+    ),
+    WorkChatSensorEntityDescription(
+        key=MSG_TYPE_IMAGE,
         name="Image Message",
         translation_key="image_message",
-        event_type="image",
+        event_type=MSG_TYPE_IMAGE,
         sensor_type=TYPE_MSG,
         icon="mdi:image-filter-hdr",
     ),
@@ -67,7 +72,7 @@ SENSOR_DESCRIPTIONS: tuple[WorkChatSensorEntityDescription, ...] = (
         sensor_type=TYPE_MSG,
         icon="mdi:cursor-default-click",
     ),
-    # 2. 诊断类传感器
+    # 诊断类传感器
     WorkChatSensorEntityDescription(
         key="callback_info",
         name="Callback Info",
@@ -76,7 +81,7 @@ SENSOR_DESCRIPTIONS: tuple[WorkChatSensorEntityDescription, ...] = (
         icon="mdi:api",
         entity_category=EntityCategory.DIAGNOSTIC,
     ),
-    # 3. 上传追踪传感器
+    # 上传追踪传感器
     WorkChatSensorEntityDescription(
         key="last_media_upload",
         name="Media Upload",
@@ -150,8 +155,9 @@ class WorkChatMessageSensor(WorkChatBaseEntity):
     def native_value(self) -> str | None:
         if not self._msg_data: return None
         key = self.entity_description.key
-        if key == "image": return "Image message"
-        if key == "text": return self._msg_data.get("content")
+        if key == MSG_TYPE_TEXT: return self._msg_data.get("content")
+        if key == MSG_TYPE_VOICE: return "Voice message"
+        if key == MSG_TYPE_IMAGE: return "Image message"
         if key == "menu_click": return "Menu Message"
         if key == "location": return self._msg_data.get("label") or self._msg_data.get("lat")
         val = self._msg_data.get("media_id")
@@ -160,7 +166,7 @@ class WorkChatMessageSensor(WorkChatBaseEntity):
 
     @property
     def entity_picture(self) -> str | None:
-        if self.entity_description.key == "image": return self._msg_data.get("pic_url")
+        if self.entity_description.key == MSG_TYPE_IMAGE: return self._msg_data.get("pic_url")
         return None
 
     @property
@@ -171,7 +177,16 @@ class WorkChatMessageSensor(WorkChatBaseEntity):
             "receive_time": self._msg_data.get("formatted_time"),
             "agent_id": self._msg_data.get("agent_id"),
         }
-        if self.entity_description.key == "image":
+        if self.entity_description.key == MSG_TYPE_VOICE:
+            media_id = self._msg_data.get("media_id")
+            attrs.update({
+                "media_id": media_id,
+                "msg_id": self._msg_data.get("msg_id"),
+                "original_format": self._msg_data.get("format"), # 保留原始格式记录（如 amr）
+                "format": "mp3",                                 # 当前实际格式
+                "local_path": f"/config/media/workchat/{media_id}.mp3"  # 指向转码后的路径
+            })
+        if self.entity_description.key == MSG_TYPE_IMAGE:
             attrs.update({"media_id": self._msg_data.get("media_id"), "pic_url": self._msg_data.get("pic_url")})
         if self.entity_description.key == "location":
             attrs.update({"latitude": self._msg_data.get("lat"), "longitude": self._msg_data.get("lon"), "address": self._msg_data.get("label")})

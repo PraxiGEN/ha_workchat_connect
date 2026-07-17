@@ -1,0 +1,16 @@
+{
+  "domain": "workchat_connect",
+  "name": "WorkChat Connect",
+  "codeowners": ["@hzonz"],
+  "config_flow": true,
+  "dependencies": ["http"],
+  "documentation": "https://github.com/hzonz/ha_workchat_connect",
+  "integration_type": "service",
+  "iot_class": "cloud_push",
+  "issue_tracker": "https://github.com/hzonz/ha_workchat_connect/issues",
+  "requirements": [
+    "pycryptodome>=3.10",
+    "yarl>=1.9"
+  ],
+  "version": "1.1.0"
+}

@@ -2,13 +2,11 @@
 from __future__ import annotations
 
 import base64
-import logging
 import os
 import struct
 from typing import Final
 from Crypto.Cipher import AES
-
-_LOGGER = logging.getLogger(__name__)
+from .const import LOGGER
 
 BLOCK_SIZE: Final = 32  # 企微固定 32 字节对齐
 IV_SIZE: Final = 16
@@ -34,7 +32,7 @@ class EncryptHelper:
             if len(self.key) != 32:
                 raise ValueError(f"AES Key 长度错误: 预期 32 字节，实际 {len(self.key)}")
         except Exception as err:
-            _LOGGER.error("EncodingAESKey 解码失败: %s", err)
+            LOGGER.error("EncodingAESKey 解码失败: %s", err)
             raise ValueError("Invalid EncodingAESKey") from err
 
     def encrypt(self, text: str) -> str:
@@ -58,7 +56,7 @@ class EncryptHelper:
             
             return base64.b64encode(encrypted_bytes).decode("utf-8")
         except Exception as err:
-            _LOGGER.error("企微加密异常: %s", err)
+            LOGGER.error("企微加密异常: %s", err)
             raise
 
     def decrypt(self, encrypted_base64: str) -> str:
@@ -92,12 +90,12 @@ class EncryptHelper:
             # 企微验证 URL (GET) 时，解密后末尾必须是 CorpID
             received_id = content_raw[20 + msg_len :].decode("utf-8").strip()
             if received_id != self.receive_id:
-                _LOGGER.warning(
+                LOGGER.warning(
                     "企微加解密校验身份不匹配: 收到 CorpID %s, 预期 CorpID %s (请检查配置)", 
                     received_id, self.receive_id
                 )
             
             return msg_content
         except Exception as err:
-            _LOGGER.error("企微解密失败 (请检查 EncodingAESKey 是否正确): %s", err)
+            LOGGER.error("企微解密失败 (请检查 EncodingAESKey 是否正确): %s", err)
             raise

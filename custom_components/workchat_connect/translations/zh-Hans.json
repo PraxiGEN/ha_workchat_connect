@@ -1,4 +1,5 @@
 {
+  "title": "企微通",
   "config": {
     "step": {
       "user": {
@@ -8,10 +9,10 @@
           "corp_id": "企业 ID (CorpID)",
           "secret": "应用密钥 (Secret)",
           "agent_id": "应用 ID (AgentID)",
-          "token": "回调令牌 (Token)",
-          "aes_key": "AES编码密钥 (EncodingAESKey)",
+          "token": "回调 Token",
+          "aes_key": "EncodingAESKey",
           "receive_user": "默认接收人",
-          "external_url": "公网回调地址 URL",
+          "external_url": "公网回调 URL",
           "proxy": "代理地址 (可选)"
         }
       }
@@ -46,6 +47,23 @@
           "from_user": { "name": "用户" },
           "receive_time": { "name": "接收时间" },
           "agent_id": { "name": "应用 ID" },
+          "raw_info": { "name": "原始信息" }
+        }
+      },
+      "voice_message": { 
+        "name": "语音消息",
+        "state":{
+          "Voice message": "语音消息"
+        },
+        "state_attributes": {
+          "from_user": { "name": "用户" },
+          "receive_time": { "name": "接收时间" },
+          "agent_id": { "name": "应用 ID" },
+          "media_id": { "name": "语音 ID" },
+          "msg_id": { "name": "消息 ID" },
+          "original_format": { "name": "原始语音格式" },
+          "format": { "name": "语音格式" },
+          "local_path": { "name": "本地路径" },
           "raw_info": { "name": "原始信息" }
         }
       },
@@ -119,13 +137,73 @@
     }
   },
   "services": {
-    "notify": {
-      "name": "发送消息",
-      "description": "通过企微通发送各种类型的消息。"
-    },
     "upload_media": {
       "name": "上传媒体文件",
-      "description": "上传本地文件并返回 media_id。"
+      "description": "将本地文件上传到企业微信服务器暂存（有效期3天）。上传成功的 media_id 可用于后续发送消息。",
+      "fields": {
+        "type": {
+          "name": "媒体类型",
+          "description": "企微要求的资源分类。图片/语音/视频有格式限制，文件(file)最为通用。"
+        },
+        "file_path": {
+          "name": "文件路径",
+          "description": "文件的本地绝对路径。"
+        },
+        "file_name": {
+          "name": "自定义文件名",
+          "description": "接收方看到的文件名称。"
+        }
+      }
+    },
+    "notify": {
+      "name": "发送企微通消息",
+      "description": "通过自建应用推送各类富媒体消息。支持发送给特定用户或全体成员。",
+      "fields": {
+        "msg_type": {
+          "name": "消息类型",
+          "description": "决定消息的呈现方式。"
+        },
+        "message": {
+          "name": "消息正文",
+          "description": "消息的主要文本内容。"
+        },
+        "title": {
+          "name": "标题",
+          "description": "消息标题。"
+        },
+        "touser": {
+          "name": "指定接收人",
+          "description": "填入成员 ID，多个用“|”分隔。全员填“@all”。"
+        },
+        "media_id": {
+          "name": "媒体文件 ID",
+          "description": "图片、文件、语音或视频消息必填。"
+        },
+        "url": {
+          "name": "跳转链接",
+          "description": "点击卡片后跳转的 URL。"
+        },
+        "btntxt": {
+          "name": "按钮文字",
+          "description": "文本卡片底部的详情链接按钮文字。"
+        },
+        "picurl": {
+          "name": "封面图 URL",
+          "description": "图文消息 (news) 顶部显示的封面图片链接。"
+        },
+        "safe": {
+          "name": "是否保密消息",
+          "description": "设为 1 时，消息在通知栏隐藏正文。"
+        },
+        "articles": {
+          "name": "图文列表",
+          "description": "仅用于 news 类型（高级对象格式）。"
+        },
+        "template_card_data": {
+          "name": "模版卡片数据",
+          "description": "仅用于 template_card 类型（JSON 对象）。"
+        }
+      }
     }
   }
 }

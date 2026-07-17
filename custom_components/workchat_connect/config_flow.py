@@ -1,7 +1,6 @@
 """企微通集成的配置流程 ."""
 from __future__ import annotations
 
-import logging
 from typing import Any
 import voluptuous as vol
 
@@ -13,6 +12,7 @@ from homeassistant.helpers.aiohttp_client import async_get_clientsession
 
 from .const import (
     DOMAIN,
+    LOGGER,
     CONF_CORP_ID,
     CONF_SECRET,
     CONF_AGENT_ID,
@@ -23,8 +23,6 @@ from .const import (
     CONF_PROXY,
     API_BASE,
 )
-
-_LOGGER = logging.getLogger(__name__)
 
 class WorkChatIntegrationFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
     """处理企微通集成的配置流程."""
@@ -49,10 +47,10 @@ class WorkChatIntegrationFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
             async with session.get(url, params=params, proxy=proxy, timeout=10) as resp:
                 data = await resp.json()
                 if data.get("errcode") != 0:
-                    _LOGGER.error("企微认证错误: %s", data.get("errmsg"))
+                    LOGGER.error("企微认证错误: %s", data.get("errmsg"))
                     return "invalid_auth"
         except Exception as err:
-            _LOGGER.error("连接企微失败 (代理: %s): %s", proxy, err)
+            LOGGER.error("连接企微失败 (代理: %s): %s", proxy, err)
             return "cannot_connect"
         return None
 
@@ -61,22 +59,22 @@ class WorkChatIntegrationFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
         errors: dict[str, str] = {}
 
         if user_input is not None:
-            # 1. 代理 URL 格式预校验（仅在用户填写了内容时校验）
+            # 代理 URL 格式预校验（仅在用户填写了内容时校验）
             proxy = user_input.get(CONF_PROXY, "").strip()
             if proxy and not proxy.startswith(("http://", "https://")):
                 errors[CONF_PROXY] = "invalid_proxy_format"
             
             if not errors:
-                # 2. 唯一性校验
+                # 唯一性校验
                 await self.async_set_unique_id(f"{user_input[CONF_CORP_ID]}_{user_input[CONF_AGENT_ID]}")
                 self._abort_if_unique_id_configured()
 
-                # 3. 认证测试
+                # 认证测试
                 error = await self._test_credentials(user_input)
                 if error:
                     errors["base"] = error
                 else:
-                    # 4. 数据清理并创建
+                    # 数据清理并创建
                     user_input[CONF_EXTERNAL_URL] = user_input[CONF_EXTERNAL_URL].rstrip("/") + "/"
                     user_input[CONF_PROXY] = proxy or "" # 存入空字符串而不是 None
                     
@@ -120,15 +118,15 @@ class WorkChatIntegrationFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
         
         errors: dict[str, str] = {}
         if user_input is not None:
-            # 1. 校验新凭据
+            # 校验新凭据
             error = await self._test_credentials(user_input)
             if error:
                 errors["base"] = error
             else:
-                # 2. 标准化 URL
+                # 标准化 URL
                 user_input[CONF_EXTERNAL_URL] = user_input[CONF_EXTERNAL_URL].rstrip("/") + "/"
                 
-                # 3. 更新现有配置并退出流程
+                # 更新现有配置并退出流程
                 return self.async_update_reload_and_abort(
                     entry, 
                     data={**entry.data, **user_input},

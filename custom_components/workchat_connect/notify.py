@@ -1,7 +1,6 @@
-"""企微通通知实体实现 - 描述符驱动规范版."""
+"""企微通通知实体实现."""
 from __future__ import annotations
 
-import logging
 from dataclasses import dataclass
 from typing import Any
 
@@ -15,10 +14,8 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
 from .__init__ import WorkChatConfigEntry
-from .const import DOMAIN
+from .const import DOMAIN, LOGGER
 from .coordinator import WorkChatCoordinator
-
-_LOGGER = logging.getLogger(__name__)
 
 # --- 定义通知描述符（完全模仿传感器模式） ---
 @dataclass(frozen=True, kw_only=True)
@@ -90,6 +87,6 @@ class WorkChatNotifyEntity(NotifyEntity):
         try:
             success = await self.coordinator.async_send_message(**params)
             if not success:
-                _LOGGER.error("发送失败，请检查企微配置或网络")
+                LOGGER.error("发送失败，请检查企微配置或网络")
         except Exception as err:
-            _LOGGER.error("通知实体发送异常: %s", err)
+            LOGGER.error("通知实体发送异常: %s", err)
