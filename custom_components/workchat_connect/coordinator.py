@@ -13,7 +13,7 @@ from typing import Any
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.device_registry import DeviceEntryType, DeviceInfo
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
-from homeassistant.helpers.event import async_track_time_interval
+from homeassistant.helpers.event import async_track_time_change
 from homeassistant.util import dt as dt_util
 
 from .api import WorkChatApi
@@ -54,10 +54,13 @@ class WorkChatCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         self.encryptor = None 
         self.external_url = ""
 
-        self._cleanup_remove_handler = async_track_time_interval(
+        # 设定在每天凌晨 3:00:00 准时清理
+        self._cleanup_remove_handler = async_track_time_change(
             self.hass, 
             self._async_scheduled_cleanup, 
-            timedelta(days=1) # 每天运行一次
+            hour=3, 
+            minute=0, 
+            second=0
         )
         
         # 核心：将注销函数告诉 ConfigEntry，卸载时会自动调用
@@ -280,9 +283,6 @@ class WorkChatCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                 else:
                     LOGGER.error("FFmpeg 转码失败: %s", result.stderr)
                     final_path = amr_path # 失败则保留 AMR 供兜底使用
-
-                # 执行自动清理
-                self._cleanup_old_files(target_dir)
                 
                 return final_path
 
@@ -303,12 +303,16 @@ class WorkChatCoordinator(DataUpdateCoordinator[dict[str, Any]]):
 
     def _cleanup_old_files(self, path: str):
         """扫描并删除过期文件 (内部 IO 方法)."""
+        
         if not os.path.exists(path):
+            LOGGER.warning("清理失败：目录不存在 %s", path)
             return
 
         now = time.time()
-        retention_seconds = DEFAULT_VOICE_RETENTION_DAYS * 86400
+        retention_seconds = float(DEFAULT_VOICE_RETENTION_DAYS) * 86400
         delete_count = 0
+
+        LOGGER.debug("开始巡检过期文件，当前时间戳: %s, 过期阈值(秒): %s", now, retention_seconds)
 
         try:
             for filename in os.listdir(path):
