@@ -1,7 +1,7 @@
 # <img src="custom_components/workchat_connect/brand/icon.png" width="64"> 企微通 (WorkChat Connect)
 
-[![Release](https://img.shields.io/github/v/release/hzonz/ha_workchat_connect)](https://github.com/hzonz/ha_workchat_connect/releases)
-[![License](https://img.shields.io/badge/License-MIT-yellow.svg)](https://github.com/hzonz/ha_workchat_connect/blob/main/LICENSE)
+[![Release](https://img.shields.io/github/v/release/PraxiGEN/ha_workchat_connect)](https://github.com/PraxiGEN/ha_workchat_connect/releases)
+[![License](https://img.shields.io/badge/License-MIT-yellow.svg)](https://github.com/PraxiGEN/ha_workchat_connect/blob/main/LICENSE)
 [![HACS Custom](https://img.shields.io/badge/HACS-Custom-orange.svg)](https://github.com/hacs/integration)
 
 ## 企微通集成允许Home Assistant与企业微信（WorkChat）无缝集成，实现双向通信功能。通过此集成，您可以：  从Home Assistant向企业微信发送各种类型的消息（文本、图片、文件、卡片、模板等）  接收企业微信发送的消息（文本、图片、位置等）  在Home Assistant中展示接收的消息内容和回调信息
@@ -23,7 +23,7 @@
 2. 选择"自定义存储库"
 3. 在存储库字段输入：
     ```yaml
-   https://github.com/hzonz/ha_workchat_connect
+   https://github.com/PraxiGEN/ha_workchat_connect
     ```
 4. 类别选择"集成"
 5. 点击"添加"保存
@@ -34,7 +34,7 @@
 
 1. 下载最新的: 
     ```yaml
-   https://github.com/hzonz/ha_workchat_connect
+   https://github.com/PraxiGEN/ha_workchat_connect
     ```
 2. 解压并将`workchat_connect`文件夹放入Home Assistant的`custom_components`目录
 3. 重启Home Assistant
