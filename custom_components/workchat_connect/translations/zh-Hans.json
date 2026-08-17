@@ -165,6 +165,10 @@
         "file_name": {
           "name": "自定义文件名",
           "description": "接收方看到的文件名称。"
+        },
+        "config_entry_id": {
+          "name": "目标配置项",
+          "description": "多企微应用并存时，指定目标配置项（留空则用第一个）。"
         }
       }
     },
@@ -215,6 +219,10 @@
         "template_card_data": {
           "name": "模版卡片数据",
           "description": "仅用于 template_card 类型（JSON 对象）。"
+        },
+        "config_entry_id": {
+          "name": "目标配置项",
+          "description": "多企微应用并存时，指定目标配置项（留空则用第一个）。"
         }
       }
     }
