@@ -165,6 +165,10 @@
         "file_name": {
           "name": "Custom Filename",
           "description": "Filename displayed to the recipient."
+        },
+        "config_entry_id": {
+          "name": "Target Config Entry",
+          "description": "When multiple WeCom apps are configured, specify the target config entry (leave empty to use the first one)."
         }
       }
     },
@@ -215,6 +219,10 @@
         "template_card_data": {
           "name": "Template Card Data",
           "description": "Used only for 'template_card' type (JSON object)."
+        },
+        "config_entry_id": {
+          "name": "Target Config Entry",
+          "description": "When multiple WeCom apps are configured, specify the target config entry (leave empty to use the first one)."
         }
       }
     }
