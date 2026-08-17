@@ -4,13 +4,13 @@
   "codeowners": ["@PraxiGEN"],
   "config_flow": true,
   "dependencies": ["http"],
+  "after_dependencies": ["diagnostics"],
   "documentation": "https://github.com/PraxiGEN/ha_workchat_connect",
   "integration_type": "service",
   "iot_class": "cloud_push",
   "issue_tracker": "https://github.com/PraxiGEN/ha_workchat_connect/issues",
   "requirements": [
-    "pycryptodome>=3.10",
-    "yarl>=1.9"
+    "pycryptodome>=3.23"
   ],
-  "version": "1.1.4"
+  "version": "1.1.5"
 }
