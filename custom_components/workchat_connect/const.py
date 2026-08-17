@@ -22,6 +22,11 @@ CONF_AES_KEY: Final = "aes_key"
 CONF_RECEIVE_USER: Final = "receive_user"
 CONF_EXTERNAL_URL: Final = "external_url"
 CONF_PROXY: Final = "proxy"
+# 服务调用时指定目标配置项（多应用并存时）
+CONF_ENTRY_ID: Final = "config_entry_id"
+
+# 诊断页最近事件缓冲上限
+MAX_RECENT_EVENTS: Final = 20
 
 # 企业微信 API 相关
 API_BASE: Final = "https://qyapi.weixin.qq.com/cgi-bin"

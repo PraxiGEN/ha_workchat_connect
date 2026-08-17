@@ -1,8 +1,8 @@
-"""企微通传感器平台实现 - 全描述符驱动优化版."""
+"""企微通传感器平台实现."""
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Any, Final
+from typing import Any
 
 from homeassistant.components.sensor import (
     SensorEntity,
@@ -16,7 +16,6 @@ from homeassistant.util import dt as dt_util
 
 from .__init__ import WorkChatConfigEntry
 from .const import ( 
-    DOMAIN, LOGGER,
     EVENT_MESSAGE_RECEIVED, EVENT_MEDIA_UPLOADED, 
     TYPE_INFO, TYPE_MSG, TYPE_UPLOAD, 
     MSG_TYPE_IMAGE, MSG_TYPE_TEXT, MSG_TYPE_VOICE
@@ -218,7 +217,7 @@ class WorkChatCallbackInfoSensor(WorkChatBaseEntity):
             })
         
         # 获取 Token 过期时间的原始计算值
-        expire_ts = getattr(self.coordinator.api, "_token_expire", 0)
+        expire_ts = self.coordinator.api.token_expires_at_ts
         if expire_ts > 0:
             attrs["token_expires_at_raw"] = dt_util.as_local(dt_util.utc_from_timestamp(expire_ts)).isoformat()
             
