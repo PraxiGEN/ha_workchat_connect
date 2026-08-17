@@ -21,7 +21,7 @@ from .const import (
 )
 from .coordinator import WorkChatCoordinator
 from .encrypt_helper import EncryptHelper
-from .views import WorkChatCallbackView, WorkChatDiagnosticView
+from .views import WorkChatCallbackView
 from .services import register_global_services
 
 type WorkChatConfigEntry = ConfigEntry[WorkChatCoordinator]
@@ -64,7 +64,6 @@ async def async_setup_entry(hass: HomeAssistant, entry: WorkChatConfigEntry) -> 
     # 全局视图与服务仅注册一次（多个配置项共享，按 token / config_entry_id 分发）
     if not hass.data.get(_INIT_FLAG):
         hass.http.register_view(WorkChatCallbackView(hass))
-        hass.http.register_view(WorkChatDiagnosticView(hass))
         register_global_services(hass)
         hass.data[_INIT_FLAG] = True
 
