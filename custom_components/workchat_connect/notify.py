@@ -14,7 +14,7 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
 from .__init__ import WorkChatConfigEntry
-from .const import DOMAIN, LOGGER
+from .const import LOGGER
 from .coordinator import WorkChatCoordinator
 
 # --- 定义通知描述符（完全模仿传感器模式） ---

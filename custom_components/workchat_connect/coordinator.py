@@ -26,7 +26,8 @@ from .const import (
     DOMAIN,
     EVENT_MEDIA_UPLOADED,
     EVENT_MESSAGE_RECEIVED,
-    DEFAULT_VOICE_RETENTION_DAYS
+    DEFAULT_VOICE_RETENTION_DAYS,
+    MAX_RECENT_EVENTS,
 )
 
 class WorkChatCoordinator(DataUpdateCoordinator[dict[str, Any]]):
@@ -49,6 +50,8 @@ class WorkChatCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         self.last_msg_time: str | None = None
         self.last_event: dict[str, Any] = {}
         self.last_upload: dict[str, Any] = {}
+        # 最近事件缓冲（供诊断页展示，不含消息正文）
+        self.recent_events: list[dict[str, Any]] = []
         
         # 由 __init__.py 注入的助手
         self.encryptor = None 
@@ -73,9 +76,9 @@ class WorkChatCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             token = await self.api.get_access_token()
             
             expires_at = None
-            if self.api._token_expire > 0:
+            if self.api.token_expires_at_ts > 0:
                 expires_at = dt_util.as_local(
-                    dt_util.utc_from_timestamp(self.api._token_expire)
+                    dt_util.utc_from_timestamp(self.api.token_expires_at_ts)
                 ).isoformat()
 
             # 构建符合 sensor.py 要求的完整数据包
@@ -164,11 +167,44 @@ class WorkChatCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         base_url = self.external_url.rstrip("/")
         return f"{base_url}/api/workchat_callback/{token}"
 
+    @property
+    def token_expires_at(self) -> str | None:
+        """Token 过期的本地时间字符串（供诊断与传感器使用）."""
+        if self.api.token_expires_at_ts > 0:
+            return dt_util.as_local(
+                dt_util.utc_from_timestamp(self.api.token_expires_at_ts)
+            ).isoformat()
+        return None
+
+    def get_diagnostic_info(self) -> dict[str, Any]:
+        """汇总诊断所需信息，供诊断页渲染."""
+        return {
+            "version": self.version,
+            "corp_id": self.api.corp_id,
+            "agent_id": self.api.agent_id,
+            "external_url": self.external_url,
+            "callback_url": self.callback_url,
+            "token_ready": self.api.token_available,
+            "token_expires_at": self.token_expires_at,
+            "last_msg_time": self.last_msg_time,
+            "last_upload": self.last_upload,
+            "recent_events": self.recent_events,
+        }
+
     def process_callback_data(self, event_data: dict[str, Any]):
         """处理 Webhook 回调接收到的数据并实时推送."""
         # 更新最后接收时间与事件内容
         self.last_msg_time = dt_util.now().strftime("%Y-%m-%d %H:%M:%S")
         self.last_event = event_data
+
+        # 写入最近事件缓冲（仅类型/发送者/时间，不含消息正文，避免泄露隐私）
+        self.recent_events.append({
+            "type": event_data.get("type"),
+            "user": event_data.get("user"),
+            "time": self.last_msg_time,
+        })
+        if len(self.recent_events) > MAX_RECENT_EVENTS:
+            self.recent_events.pop(0)
         
         # 触发 HA 事件 (供自动化使用)
         self.hass.bus.async_fire(EVENT_MESSAGE_RECEIVED, event_data)

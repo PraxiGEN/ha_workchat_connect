@@ -70,6 +70,16 @@ class WorkChatApi:
                 LOGGER.error("获取企微 Token 网络异常: %s (代理: %s)", err, self.proxy)
             return None
 
+    @property
+    def token_expires_at_ts(self) -> float:
+        """Token 过期的 Unix 时间戳（公开属性，替代访问私有 _token_expire）."""
+        return self._token_expire
+
+    @property
+    def token_available(self) -> bool:
+        """当前是否已持有有效 Token."""
+        return self._access_token is not None and time.time() < self._token_expire
+
     async def post_api(self, path: str, json_data: dict | None = None, params: dict | None = None, data: Any = None, retry: int = 1) -> dict:
             """通用的 POST 请求方法，支持自动 Token 刷新及 URL 参数."""
             token = await self.get_access_token()
