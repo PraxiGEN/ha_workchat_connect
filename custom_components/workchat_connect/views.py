@@ -69,20 +69,19 @@ class _BaseWorkChatView(HomeAssistantView):
 
         return data
 
-
 class WorkChatCallbackView(_BaseWorkChatView):
-    """处理企微回调：URL 验证(GET+echostr) 与 消息接收(POST)。对公网开放。"""
+    """处理企微回调：URL 验证(GET+echostr) / 消息接收(POST) / 诊断状态页(GET 无 echostr).。"""
 
     url = "/api/workchat_callback/{token}"
     name = "api:workchat_callback"
-    requires_auth = False  # 企微服务器访问不需要 HA 登录
+    requires_auth = False  # 企微服务器访问不需要 HA 登录；诊断页同样凭机密 Token 访问
 
     def __init__(self, hass) -> None:
         """初始化视图."""
         self.hass = hass
 
     async def get(self, request: web.Request, token: str) -> web.Response:
-        """处理 GET 请求：企微 URL 验证，或非验证请求时返回端点说明."""
+        """处理 GET 请求：企微 URL 验证，或无 echostr 时返回诊断状态页."""
         coordinator = self._get_coordinator(token)
         if coordinator is None:
             return web.Response(status=403, text="Token Mismatch")
@@ -90,12 +89,11 @@ class WorkChatCallbackView(_BaseWorkChatView):
         q = request.query
         echostr = q.get("echostr")
 
-        # 情况 A: 非验证请求（无 echostr）—— 此处不是诊断页，仅返回端点说明
+        # 情况 A: 非验证请求（无 echostr）—— 渲染诊断状态页
         if not echostr:
-            return web.Response(
-                text="WeCom callback endpoint. 诊断页请访问 /api/workchat_diagnostic/<token>",
-                content_type="text/plain",
-            )
+            info = coordinator.get_diagnostic_info()
+            info["entry_count"] = len(self.hass.data.get(DOMAIN, {}))
+            return web.Response(text=self._get_status_html(info), content_type="text/html")
 
         # 情况 B: 企微后台 URL 验证逻辑
         sig = q.get("msg_signature")
@@ -145,28 +143,6 @@ class WorkChatCallbackView(_BaseWorkChatView):
         except Exception as err:
             LOGGER.error("处理企微推送消息异常: %s", err)
             return web.Response(status=500)
-
-
-class WorkChatDiagnosticView(_BaseWorkChatView):
-    """诊断状态页：仅允许已登录的 Home Assistant 用户访问（requires_auth=True）。"""
-
-    url = "/api/workchat_diagnostic/{token}"
-    name = "api:workchat_diagnostic"
-    requires_auth = True  # 安全：必须登录 HA 才能查看诊断信息
-
-    def __init__(self, hass) -> None:
-        """初始化视图."""
-        self.hass = hass
-
-    async def get(self, request: web.Request, token: str) -> web.Response:
-        """渲染诊断状态页（仅已登录用户）."""
-        coordinator = self._get_coordinator(token)
-        if coordinator is None:
-            return web.Response(status=403, text="Token Mismatch")
-
-        info = coordinator.get_diagnostic_info()
-        info["entry_count"] = len(self.hass.data.get(DOMAIN, {}))
-        return web.Response(text=self._get_status_html(info), content_type="text/html")
 
     def _get_status_html(self, info: dict[str, Any]) -> str:
         """生成丰富版诊断状态页 HTML."""
@@ -281,7 +257,7 @@ class WorkChatDiagnosticView(_BaseWorkChatView):
                     External URL: {info.get('external_url')}
                 </div>
             </div>
-            <div class="footer">WorkChat Integration for Home Assistant · 需登录后访问</div>
+            <div class="footer">WorkChat Integration for Home Assistant · 凭回调 Token 访问</div>
         </body>
         </html>
         """
