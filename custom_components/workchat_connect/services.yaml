@@ -23,6 +23,12 @@ upload_media:
       required: false
       selector:
         text:
+    config_entry_id:
+      required: false
+      description: "多企微应用并存时，指定目标配置项（留空则用第一个）。"
+      selector:
+        config_entry:
+          integration: workchat_connect
 
 notify:
   fields:
@@ -88,3 +94,9 @@ notify:
     template_card_data:
       selector:
         object:
+    config_entry_id:
+      required: false
+      description: "多企微应用并存时，指定目标配置项（留空则用第一个）。"
+      selector:
+        config_entry:
+          integration: workchat_connect
