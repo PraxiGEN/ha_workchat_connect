@@ -38,7 +38,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: WorkChatConfigEntry) -> 
         corp_id=entry.data[CONF_CORP_ID],
         secret=entry.data[CONF_SECRET],
         agent_id=entry.data[CONF_AGENT_ID],
-        proxy=entry.data.get(CONF_PROXY),
+        proxy=entry.options.get(CONF_PROXY, entry.data.get(CONF_PROXY, "")),
     )
 
     integration = await async_get_integration(hass, DOMAIN)
@@ -61,6 +61,9 @@ async def async_setup_entry(hass: HomeAssistant, entry: WorkChatConfigEntry) -> 
     # 供各平台（notify/sensor）通过 entry.runtime_data 获取协调器
     entry.runtime_data = coordinator
 
+    # 启动即完成首次刷新：失败抛 ConfigEntryNotReady 由 HA 自动重试
+    await coordinator.async_config_entry_first_refresh()
+
     # 全局视图与服务仅注册一次（多个配置项共享，按 token / config_entry_id 分发）
     if not hass.data.get(_INIT_FLAG):
         hass.http.register_view(WorkChatCallbackView(hass))
@@ -75,10 +78,13 @@ async def async_setup_entry(hass: HomeAssistant, entry: WorkChatConfigEntry) -> 
 async def async_unload_entry(hass: HomeAssistant, entry: WorkChatConfigEntry) -> bool:
     """卸载集成."""
 
-    coordinator = hass.data[DOMAIN].pop(entry.entry_id, None)
     unload_ok = await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
+    if not unload_ok:
+        # 卸载失败保持注册表原状，entry 仍处于 loaded 状态
+        return False
 
-    if unload_ok and coordinator is not None:
+    coordinator = hass.data[DOMAIN].pop(entry.entry_id, None)
+    if coordinator is not None:
         # 触发语音文件物理清理（按设计在卸载时进行）
         await coordinator.async_remove_media_data()
 
@@ -89,6 +95,6 @@ async def async_unload_entry(hass: HomeAssistant, entry: WorkChatConfigEntry) ->
             if hass.services.has_service(DOMAIN, "upload_media"):
                 hass.services.async_remove(DOMAIN, "upload_media")
             hass.data.pop(_INIT_FLAG, None)
-        LOGGER.info("企微通集成 %s 已卸载完成", entry.title)
 
-    return unload_ok
+    LOGGER.info("企微通集成 %s 已卸载完成", entry.title)
+    return True
