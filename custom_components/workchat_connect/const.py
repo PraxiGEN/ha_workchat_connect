@@ -32,6 +32,7 @@ MAX_RECENT_EVENTS: Final = 20
 API_BASE: Final = "https://qyapi.weixin.qq.com/cgi-bin"
 # 补充 API 路径常量
 API_GET_TOKEN: Final = "gettoken"
+API_GET_AGENT: Final = "agent/get"
 API_SEND_MESSAGE: Final = "message/send"
 API_UPLOAD_MEDIA: Final = "media/upload"
 API_GET_MEDIA: Final = "media/get"
