@@ -305,5 +305,8 @@
         }
       }
     }
+  },
+  "exceptions": {
+    "update_error": "Failed to fetch WeCom API data"
   }
 }
