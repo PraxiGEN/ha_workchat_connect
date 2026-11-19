@@ -11,6 +11,7 @@ from .const import (
     LOGGER,
     API_BASE,
     API_GET_TOKEN,
+    API_GET_AGENT,
     API_GET_MEDIA,
     MSG_TYPE_TEXT,
     MSG_TYPE_MARKDOWN,
@@ -77,6 +78,22 @@ class WorkChatApi:
     def token_expires_at_ts(self) -> float:
         """Token 过期的 Unix 时间戳（公开属性，替代访问私有 _token_expire）."""
         return self._token_expire
+
+    async def get_agent_info(self) -> dict | None:
+        """获取当前应用详情（agent/get），失败返回 None."""
+        token = await self.get_access_token()
+        if not token:
+            return None
+        url = (self.base_url / API_GET_AGENT).with_query(access_token=token, agentid=self.agent_id)
+        try:
+            async with self.session.get(url, proxy=self.proxy, timeout=_TIMEOUT_FAST) as resp:
+                data = await resp.json()
+                if data.get("errcode") == 0:
+                    return data
+                LOGGER.error("获取企微应用详情失败: %s", data.get("errmsg"))
+        except Exception as err:
+            LOGGER.error("获取企微应用详情网络异常: %s", err)
+        return None
 
     @property
     def token_available(self) -> bool:
