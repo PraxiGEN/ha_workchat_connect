@@ -22,6 +22,7 @@ from .const import (
 )
 from .coordinator import WorkChatCoordinator
 
+
 @dataclass(frozen=True, kw_only=True)
 class WorkChatSensorEntityDescription(SensorEntityDescription):
     """描述企微通传感器的扩展类."""
@@ -182,9 +183,11 @@ class WorkChatMessageSensor(WorkChatBaseEntity):
                 "media_id": media_id,
                 "msg_id": self._msg_data.get("msg_id"),
                 "original_format": self._msg_data.get("format"), # 保留原始格式记录（如 amr）
-                "format": "mp3",                                 # 当前实际格式
-                "local_path": f"/config/media/workchat/{media_id}.mp3"  # 指向转码后的路径
+                "format": "mp3",
             })
+            # 实际落盘路径由协调器转码完成后写回（无 ffmpeg 兜底时是 .amr）
+            if media_id and (p := self.coordinator.voice_paths.get(media_id)):
+                attrs["local_path"] = p
         if self.entity_description.key == MSG_TYPE_IMAGE:
             attrs.update({"media_id": self._msg_data.get("media_id"), "pic_url": self._msg_data.get("pic_url")})
         if self.entity_description.key == "location":

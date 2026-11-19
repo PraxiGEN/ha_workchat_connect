@@ -11,10 +11,10 @@ from homeassistant.components.notify import (
     NotifyEntityFeature,
 )
 from homeassistant.core import HomeAssistant
+from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
 from .__init__ import WorkChatConfigEntry
-from .const import LOGGER
 from .coordinator import WorkChatCoordinator
 
 # --- 定义通知描述符（完全模仿传感器模式） ---
@@ -84,9 +84,6 @@ class WorkChatNotifyEntity(NotifyEntity):
         if "msg_type" not in params:
             params["msg_type"] = "text"
 
-        try:
-            success = await self.coordinator.async_send_message(**params)
-            if not success:
-                LOGGER.error("发送失败，请检查企微配置或网络")
-        except Exception as err:
-            LOGGER.error("通知实体发送异常: %s", err)
+        success = await self.coordinator.async_send_message(**params)
+        if not success:
+            raise HomeAssistantError("企微消息发送失败，请检查配置或网络")
