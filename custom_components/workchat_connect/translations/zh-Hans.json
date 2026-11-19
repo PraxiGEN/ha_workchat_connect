@@ -305,5 +305,8 @@
         }
       }
     }
+  },
+  "exceptions": {
+    "update_error": "获取企微 API 数据失败"
   }
 }

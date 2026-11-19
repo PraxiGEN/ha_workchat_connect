@@ -3,14 +3,14 @@ from __future__ import annotations
 
 import asyncio
 import time
-from typing import Any
+from typing import Any, Final
 from yarl import URL
-from aiohttp import ClientSession
+from aiohttp import ClientSession, ClientTimeout
 
 from .const import (
     LOGGER,
-    API_BASE, 
-    API_GET_TOKEN, 
+    API_BASE,
+    API_GET_TOKEN,
     API_GET_MEDIA,
     MSG_TYPE_TEXT,
     MSG_TYPE_MARKDOWN,
@@ -22,6 +22,9 @@ from .const import (
     MSG_TYPE_VOICE,
     MSG_TYPE_VIDEO
 )
+
+_TIMEOUT_FAST: Final = ClientTimeout(total=10)
+_TIMEOUT_SLOW: Final = ClientTimeout(total=30)
 
 class WorkChatApi:
     """封装企业微信所有 API 请求."""
@@ -56,7 +59,7 @@ class WorkChatApi:
             params = {"corpid": self.corp_id, "corpsecret": self.secret}
 
             try:
-                async with self.session.get(url, params=params, proxy=self.proxy, timeout=10) as resp:
+                async with self.session.get(url, params=params, proxy=self.proxy, timeout=_TIMEOUT_FAST) as resp:
                     data = await resp.json()
                     if data.get("errcode") == 0:
                         self._access_token = data["access_token"]
@@ -92,7 +95,7 @@ class WorkChatApi:
                 url = url.update_query(params)
             
             try:
-                async with self.session.post(url, json=json_data, data=data, proxy=self.proxy, timeout=30) as resp:
+                async with self.session.post(url, json=json_data, data=data, proxy=self.proxy, timeout=_TIMEOUT_SLOW) as resp:
                     res = await resp.json()
                     
                     # 处理 Token 失效
@@ -171,7 +174,7 @@ class WorkChatApi:
         )
 
         try:
-            async with self.session.get(url, proxy=self.proxy, timeout=30) as resp:
+            async with self.session.get(url, proxy=self.proxy, timeout=_TIMEOUT_SLOW) as resp:
                 if resp.status == 200:
                     content_type = resp.headers.get("Content-Type", "")
                     # 如果返回的是 JSON，说明是错误信息

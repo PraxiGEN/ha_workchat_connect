@@ -17,6 +17,8 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from .__init__ import WorkChatConfigEntry
 from .coordinator import WorkChatCoordinator
 
+PARALLEL_UPDATES = 0
+
 # --- 定义通知描述符（完全模仿传感器模式） ---
 @dataclass(frozen=True, kw_only=True)
 class WorkChatNotifyEntityDescription(NotifyEntityDescription):
