@@ -22,6 +22,8 @@ from .const import (
 )
 from .coordinator import WorkChatCoordinator
 
+PARALLEL_UPDATES = 0
+
 
 @dataclass(frozen=True, kw_only=True)
 class WorkChatSensorEntityDescription(SensorEntityDescription):
