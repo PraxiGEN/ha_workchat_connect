@@ -23,7 +23,9 @@ def register_global_services(hass: HomeAssistant) -> None:
         if coordinator is None:
             LOGGER.error("企微通: 未找到可用的配置项，无法发送消息")
             return
-        await coordinator.async_send_message(**call.data)
+        # 剔除路由字段，避免脏数据透传进消息构造
+        data = {k: v for k, v in call.data.items() if k != CONF_ENTRY_ID}
+        await coordinator.async_send_message(**data)
 
     async def handle_upload_media(call: ServiceCall):
         coordinator = _select_coordinator(hass, call)
