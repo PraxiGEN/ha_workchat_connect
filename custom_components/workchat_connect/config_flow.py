@@ -24,6 +24,13 @@ from .const import (
     API_BASE,
 )
 
+def _normalize_proxy(proxy: str | None) -> tuple[str, str | None]:
+    """规范化代理并校验格式."""
+    proxy = (proxy or "").strip()
+    if proxy and not proxy.startswith(("http://", "https://")):
+        return proxy, "invalid_proxy_format"
+    return proxy, None
+
 class WorkChatIntegrationFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
     """处理企微通集成的配置流程."""
 
@@ -59,10 +66,9 @@ class WorkChatIntegrationFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
         errors: dict[str, str] = {}
 
         if user_input is not None:
-            # 代理 URL 格式预校验（仅在用户填写了内容时校验）
-            proxy = user_input.get(CONF_PROXY, "").strip()
-            if proxy and not proxy.startswith(("http://", "https://")):
-                errors[CONF_PROXY] = "invalid_proxy_format"
+            proxy, proxy_error = _normalize_proxy(user_input.get(CONF_PROXY))
+            if proxy_error:
+                errors[CONF_PROXY] = proxy_error
             
             if not errors:
                 # 唯一性校验
@@ -115,23 +121,30 @@ class WorkChatIntegrationFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
         """处理重新配置流程。"""
         # 获取当前正在重新配置的 Entry
         entry = self.hass.config_entries.async_get_entry(self.context["entry_id"])
-        
+        if entry is None:
+            return self.async_abort(reason="entry_not_found")
+
         errors: dict[str, str] = {}
         if user_input is not None:
-            # 校验新凭据
-            error = await self._test_credentials(user_input)
-            if error:
-                errors["base"] = error
+            proxy, proxy_error = _normalize_proxy(user_input.get(CONF_PROXY))
+            if proxy_error:
+                errors[CONF_PROXY] = proxy_error
             else:
-                # 标准化 URL
-                user_input[CONF_EXTERNAL_URL] = user_input[CONF_EXTERNAL_URL].rstrip("/") + "/"
-                
-                # 更新现有配置并退出流程
-                return self.async_update_reload_and_abort(
-                    entry, 
-                    data={**entry.data, **user_input},
-                    reason="reconfigure_successful"
-                )
+                # 校验新凭据
+                error = await self._test_credentials(user_input)
+                if error:
+                    errors["base"] = error
+                else:
+                    user_input[CONF_PROXY] = proxy
+                    # 标准化 URL
+                    user_input[CONF_EXTERNAL_URL] = user_input[CONF_EXTERNAL_URL].rstrip("/") + "/"
+
+                    # 更新现有配置并退出流程
+                    return self.async_update_reload_and_abort(
+                        entry,
+                        data={**entry.data, **user_input},
+                        reason="reconfigure_successful"
+                    )
 
         # 预填当前数据
         return self.async_show_form(
@@ -160,11 +173,10 @@ class WorkChatOptionsFlowHandler(config_entries.OptionsFlowWithReload):
         errors: dict[str, str] = {}
 
         if user_input is not None:
-            proxy = user_input.get(CONF_PROXY, "").strip()
-            if proxy and not proxy.startswith(("http://", "https://")):
-                errors[CONF_PROXY] = "invalid_proxy_format"
-
-            if not errors:
+            proxy, proxy_error = _normalize_proxy(user_input.get(CONF_PROXY))
+            if proxy_error:
+                errors[CONF_PROXY] = proxy_error
+            else:
                 user_input[CONF_PROXY] = proxy
                 # OptionsFlowWithReload 在流程结束时写入 entry.options 并自动重载
                 return self.async_create_entry(data=user_input)

@@ -46,7 +46,7 @@ class _BaseWorkChatView(HomeAssistantView):
         }
 
         if msg_type == "text":
-            data["content"] = root.find("Content").text
+            data["content"] = root.find("Content").text or ""
         elif msg_type == "voice":
             data["media_id"] = root.find("MediaId").text
             data["format"] = root.find("Format").text if root.find("Format") is not None else "amr"

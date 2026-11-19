@@ -51,6 +51,8 @@ class WorkChatCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         self.last_msg_time: str | None = None
         self.last_event: dict[str, Any] = {}
         self.last_upload: dict[str, Any] = {}
+        # 语音落盘实际路径缓存：media_id -> 文件路径（转码结果，兜底为 .amr）
+        self.voice_paths: dict[str, str] = {}
         # 最近事件缓冲（供诊断页展示，不含消息正文）
         self.recent_events: list[dict[str, Any]] = []
         
@@ -332,6 +334,9 @@ class WorkChatCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             result_path = await self.hass.async_add_executor_job(_sync_process_io)
             if result_path:
                 LOGGER.info("企微语音处理完成，最终路径: %s", result_path)
+                # 缓存实际路径并推送刷新，让语音传感器的 local_path 拿到真实落盘路径
+                self.voice_paths[media_id] = result_path
+                self.hass.async_create_task(self._async_push_update())
             return result_path
 
         except Exception as err:
@@ -368,6 +373,11 @@ class WorkChatCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             
             if delete_count > 0:
                 LOGGER.info("企微语音清理完成：共移除 %d 个文件", delete_count)
+
+            # 同步修剪路径缓存：仅保留磁盘上仍存在的文件
+            self.voice_paths = {
+                mid: p for mid, p in self.voice_paths.items() if os.path.isfile(p)
+            }
         except Exception as err:
             LOGGER.error("自动清理任务执行失败: %s", err)
 
