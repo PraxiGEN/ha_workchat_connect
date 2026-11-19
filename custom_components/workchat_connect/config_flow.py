@@ -4,9 +4,13 @@ from __future__ import annotations
 from typing import Any
 import voluptuous as vol
 
-from homeassistant import config_entries
+from homeassistant.config_entries import (
+    ConfigEntry,
+    ConfigFlow,
+    ConfigFlowResult,
+    OptionsFlowWithReload,
+)
 from homeassistant.core import callback
-from homeassistant.data_entry_flow import FlowResult
 from homeassistant.helpers import selector
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 
@@ -31,7 +35,7 @@ def _normalize_proxy(proxy: str | None) -> tuple[str, str | None]:
         return proxy, "invalid_proxy_format"
     return proxy, None
 
-class WorkChatIntegrationFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
+class WorkChatIntegrationFlowHandler(ConfigFlow, domain=DOMAIN):
     """处理企微通集成的配置流程."""
 
     VERSION = 1
@@ -61,7 +65,7 @@ class WorkChatIntegrationFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
             return "cannot_connect"
         return None
 
-    async def async_step_user(self, user_input: dict[str, Any] | None = None) -> FlowResult:
+    async def async_step_user(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
         """用户初始配置."""
         errors: dict[str, str] = {}
 
@@ -114,10 +118,10 @@ class WorkChatIntegrationFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
 
     @staticmethod
     @callback
-    def async_get_options_flow(config_entry: config_entries.ConfigEntry) -> WorkChatOptionsFlowHandler:
+    def async_get_options_flow(config_entry: ConfigEntry) -> WorkChatOptionsFlowHandler:
         return WorkChatOptionsFlowHandler()
 
-    async def async_step_reconfigure(self, user_input: dict[str, Any] | None = None) -> FlowResult:
+    async def async_step_reconfigure(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
         """处理重新配置流程。"""
         # 获取当前正在重新配置的 Entry
         entry = self.hass.config_entries.async_get_entry(self.context["entry_id"])
@@ -165,10 +169,10 @@ class WorkChatIntegrationFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
             errors=errors,
         )
 
-class WorkChatOptionsFlowHandler(config_entries.OptionsFlowWithReload):
+class WorkChatOptionsFlowHandler(OptionsFlowWithReload):
     """处理集成选项修改（保存到 entry.options，变更后自动重载）."""
 
-    async def async_step_init(self, user_input: dict[str, Any] | None = None) -> FlowResult:
+    async def async_step_init(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
         """管理选项菜单."""
         errors: dict[str, str] = {}
 

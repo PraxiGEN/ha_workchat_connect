@@ -1,14 +1,13 @@
 """企微通数据协调器."""
 from __future__ import annotations
 
-import hashlib
 import time
 import os
 import subprocess
 import shutil
 from aiohttp import FormData
 from datetime import timedelta
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.device_registry import DeviceEntryType, DeviceInfo
@@ -30,10 +29,13 @@ from .const import (
     MAX_RECENT_EVENTS,
 )
 
+if TYPE_CHECKING:
+    from .__init__ import WorkChatConfigEntry
+
 class WorkChatCoordinator(DataUpdateCoordinator[dict[str, Any]]):
     """集成协调器，处理服务调用、状态维护与数据同步."""
 
-    def __init__(self, hass: HomeAssistant, api: WorkChatApi, entry, version: str) -> None:
+    def __init__(self, hass: HomeAssistant, api: WorkChatApi, entry: WorkChatConfigEntry, version: str) -> None:
         """初始化协调器."""
         super().__init__(
             hass,
@@ -97,7 +99,7 @@ class WorkChatCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             }
         except Exception as err:
             # 如果是 API 错误，抛出 UpdateFailed 让实体显示为“不可用”
-            raise UpdateFailed(f"获取企微 API 数据失败: {err}") from err
+            raise UpdateFailed(translation_domain=DOMAIN, translation_key="update_error") from err
 
     async def async_send_message(self, **kwargs: Any) -> bool:
         """发送消息入口 (完全支持 services.yaml 定义的所有字段)."""
@@ -229,28 +231,6 @@ class WorkChatCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         """内部辅助：强制刷新传感器状态显示."""
         new_data = await self._async_update_data()
         self.async_set_updated_data(new_data)
-
-    def generate_passive_response(self, content: str) -> str:
-        """生成符合企微安全规范的加密响应 XML."""
-        if not self.encryptor:
-            LOGGER.warning("加密助手未初始化，无法生成被动回复")
-            return ""
-        
-        timestamp = str(int(time.time()))
-        nonce = str(int(time.time()) % 1000000)
-        encrypt = self.encryptor.encrypt(content)
-        
-        # 签名校验 (Token 来自 const.py 对应的 entry.data)
-        token = self.entry.data[CONF_TOKEN]
-        tmp_list = sorted([token, timestamp, nonce, encrypt])
-        signature = hashlib.sha1("".join(tmp_list).encode()).hexdigest()
-        
-        return f"""<xml>
-            <Encrypt><![CDATA[{encrypt}]]></Encrypt>
-            <MsgSignature><![CDATA[{signature}]]></MsgSignature>
-            <TimeStamp>{timestamp}</TimeStamp>
-            <Nonce><![CDATA[{nonce}]]></Nonce>
-        </xml>"""
 
     async def async_save_voice_file(self, media_id: str, file_format: str = "amr") -> str | None:
         """拉取、保存并自动转码语音文件到 HA 媒体库."""

@@ -10,7 +10,7 @@
   "iot_class": "cloud_push",
   "issue_tracker": "https://github.com/PraxiGEN/ha_workchat_connect/issues",
   "requirements": [
-    "pycryptodome>=3.23"
+    "pycryptodome==3.23.0"
   ],
   "version": "1.1.6"
 }

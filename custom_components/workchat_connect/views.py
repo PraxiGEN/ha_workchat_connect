@@ -70,7 +70,7 @@ class _BaseWorkChatView(HomeAssistantView):
         return data
 
 class WorkChatCallbackView(_BaseWorkChatView):
-    """处理企微回调：URL 验证(GET+echostr) / 消息接收(POST) / 诊断状态页(GET 无 echostr).。"""
+    """处理企微回调：URL 验证(GET+echostr) / 消息接收(POST) / 诊断状态页(GET 无 echostr)."""
 
     url = "/api/workchat_callback/{token}"
     name = "api:workchat_callback"
