@@ -240,7 +240,7 @@ class WorkChatCoordinator(DataUpdateCoordinator[dict[str, Any]]):
 
     @property
     def _media_dir(self) -> str:
-        """语音存储根目录：跟随 HA 本地媒体目录（media browser 可见)."""
+        """语音存储根目录：跟随 HA 本地媒体目录（media browser 可见）."""
         return os.path.join(self.hass.config.media_dirs["local"], "workchat")
 
     async def async_save_voice_file(self, media_id: str, file_format: str = "amr") -> str | None:
