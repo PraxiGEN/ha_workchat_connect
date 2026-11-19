@@ -51,6 +51,8 @@ class WorkChatCoordinator(DataUpdateCoordinator[dict[str, Any]]):
 
         # --- 状态持久化变量 ---
         self.last_msg_time: str | None = None
+        # 企微应用真实名称（agent/get，拉取成功后缓存，供设备名展示）
+        self.app_name: str | None = None
         self.last_event: dict[str, Any] = {}
         self.last_upload: dict[str, Any] = {}
         # 语音落盘实际路径缓存：media_id -> 文件路径（转码结果，兜底为 .amr）
@@ -85,6 +87,10 @@ class WorkChatCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                 expires_at = dt_util.as_local(
                     dt_util.utc_from_timestamp(self.api.token_expires_at_ts)
                 ).isoformat()
+
+            # 非致命拉取应用真实名称（首次成功后不再重复请求），失败不影响诊断数据
+            if self.app_name is None and (agent_info := await self.api.get_agent_info()):
+                self.app_name = agent_info.get("name") or None
 
             # 构建符合 sensor.py 要求的完整数据包
             return {
@@ -232,6 +238,11 @@ class WorkChatCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         new_data = await self._async_update_data()
         self.async_set_updated_data(new_data)
 
+    @property
+    def _media_dir(self) -> str:
+        """语音存储根目录：跟随 HA 本地媒体目录（media browser 可见)."""
+        return os.path.join(self.hass.config.media_dirs["local"], "workchat")
+
     async def async_save_voice_file(self, media_id: str, file_format: str = "amr") -> str | None:
         """拉取、保存并自动转码语音文件到 HA 媒体库."""
         
@@ -242,8 +253,7 @@ class WorkChatCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             return None
 
         # 定义路径
-        # 物理根目录: /config/media/workchat
-        target_dir = self.hass.config.path("media", "workchat")
+        target_dir = self._media_dir
         
         # 原始 AMR 路径和目标 MP3 路径
         amr_filename = f"{media_id}.amr"
@@ -363,9 +373,8 @@ class WorkChatCoordinator(DataUpdateCoordinator[dict[str, Any]]):
 
     async def async_remove_media_data(self):
         """卸载集成时，清理所有的语音文件及目录."""
-        
-        # 获取物理路径: /config/media/workchat
-        target_dir = self.hass.config.path("media", "workchat")
+
+        target_dir = self._media_dir
 
         def _delete_dir():
             try:
@@ -381,7 +390,7 @@ class WorkChatCoordinator(DataUpdateCoordinator[dict[str, Any]]):
     async def _async_scheduled_cleanup(self, _now=None):
         """定时触发的磁盘清理任务."""
         LOGGER.info("正在执行每日企微语音文件自动清理巡检")
-        target_dir = self.hass.config.path("media", "workchat")
+        target_dir = self._media_dir
         # 在线程池中执行磁盘扫描，防止卡顿
         await self.hass.async_add_executor_job(self._cleanup_old_files, target_dir)
 
@@ -392,7 +401,7 @@ class WorkChatCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         agent_id = self.api.agent_id
         return DeviceInfo(
             identifiers={(DOMAIN, self.entry.entry_id)},
-            name=f"WorkChat App ({agent_id})",
+            name=self.app_name or f"WorkChat App ({agent_id})",
             manufacturer="Tencent",
             model="WorkChat API Platform",
             configuration_url=f"https://work.weixin.qq.com/wework_admin/frame#apps/modApiApp/{agent_id}",
