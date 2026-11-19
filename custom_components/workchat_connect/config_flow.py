@@ -152,23 +152,22 @@ class WorkChatIntegrationFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
             errors=errors,
         )
 
-class WorkChatOptionsFlowHandler(config_entries.OptionsFlow):
-    """处理集成选项修改."""
+class WorkChatOptionsFlowHandler(config_entries.OptionsFlowWithReload):
+    """处理集成选项修改（保存到 entry.options，变更后自动重载）."""
 
     async def async_step_init(self, user_input: dict[str, Any] | None = None) -> FlowResult:
         """管理选项菜单."""
         errors: dict[str, str] = {}
-        
+
         if user_input is not None:
             proxy = user_input.get(CONF_PROXY, "").strip()
             if proxy and not proxy.startswith(("http://", "https://")):
                 errors[CONF_PROXY] = "invalid_proxy_format"
-            
+
             if not errors:
-                new_data = {**self.config_entry.data, **user_input}
-                # 更新并保存，触发集成重载
-                self.hass.config_entries.async_update_entry(self.config_entry, data=new_data)
-                return self.async_create_entry(title="", data={})
+                user_input[CONF_PROXY] = proxy
+                # OptionsFlowWithReload 在流程结束时写入 entry.options 并自动重载
+                return self.async_create_entry(data=user_input)
 
         return self.async_show_form(
             step_id="init",

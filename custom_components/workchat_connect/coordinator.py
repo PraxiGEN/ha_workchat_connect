@@ -38,6 +38,7 @@ class WorkChatCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         super().__init__(
             hass,
             LOGGER,
+            config_entry=entry,
             name=DOMAIN,
             # 每 30 分钟轮询一次诊断信息（如 Token 状态）
             update_interval=timedelta(minutes=30),
@@ -45,7 +46,7 @@ class WorkChatCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         self.api = api
         self.entry = entry
         self.version = version
-        
+
         # --- 状态持久化变量 ---
         self.last_msg_time: str | None = None
         self.last_event: dict[str, Any] = {}
@@ -340,8 +341,9 @@ class WorkChatCoordinator(DataUpdateCoordinator[dict[str, Any]]):
     def _cleanup_old_files(self, path: str):
         """扫描并删除过期文件 (内部 IO 方法)."""
         
-        if not os.path.exists(path):
-            LOGGER.warning("清理失败：目录不存在 %s", path)
+        # 定时巡检时目录不存在属正常状态（无语音或已被清理），静默跳过
+        if not os.path.isdir(path):
+            LOGGER.debug("清理跳过：语音目录不存在 %s", path)
             return
 
         now = time.time()
